@@ -2,7 +2,37 @@
 
 Ren PHP 8.1+ og MySQL/MariaDB via PDO. Ingen framework og ingen Composer-pakker.
 
-## Kom i gang
+## Udviklingsmiljø med Docker (Windows/Docker Desktop)
+
+Kræver Docker Desktop. Fra projektmappen (PowerShell eller terminalen i VS Code):
+
+```powershell
+copy .env.example .env      # første gang; ret evt. adgangskoder og porte
+docker compose up -d --build
+```
+
+| Tjeneste   | Adresse                 | Bemærkning                                         |
+|------------|-------------------------|----------------------------------------------------|
+| Webapp     | http://localhost:8080   | PHP 8.1 + Apache, webrod `public/`                 |
+| phpMyAdmin | http://localhost:8081   | Logger automatisk ind som root                     |
+| MariaDB    | `localhost:3306`        | 10.11, data i named volume `db_data`               |
+
+Projektmappen er mountet i containeren, så ændringer i VS Code slår igennem med det samme.
+Databaseoplysningerne står i `.env` og gives til PHP som `DB_HOST`, `DB_NAME`, `DB_USER` og
+`DB_PASS`. Første gang databasen oprettes, køres scripts i `db/init/` (tabeller fra
+`sql/schema.sql` og eksempeldata fra `sql/seed.sql`).
+
+```powershell
+docker compose logs -f web             # Apache/PHP-log
+docker compose exec web bash           # shell i webcontaineren (Composer er installeret)
+docker compose down                    # stop (data bevares)
+docker compose down -v                 # stop og slet databasen; init-scripts køres igen ved næste start
+```
+
+Er en port optaget (fx en lokal MySQL på 3306), så ret `DB_FORWARD_PORT`, `WEB_PORT` eller
+`PMA_PORT` i `.env`.
+
+## Kom i gang uden Docker
 
 ```bash
 # 1) Database (opretter databasen "aarshjul" og fylder eksempeldata i)
@@ -16,7 +46,7 @@ php -S localhost:8080 -t public
 ```
 
 Åbn http://localhost:8080. Databaseoplysninger står i `config.php` og kan overstyres med
-miljøvariabler (`AARSHJUL_DB_HOST`, `AARSHJUL_DB_NAME`, `AARSHJUL_DB_USER`, `AARSHJUL_DB_PASS`)
+miljøvariabler (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` eller med præfikset `AARSHJUL_`)
 eller en `config.local.php`, der returnerer et array.
 
 Kræver PHP-udvidelserne `pdo_mysql`, `zip` (Excel-eksport), `fileinfo` og `mbstring`.
@@ -42,6 +72,7 @@ På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke
 
 ```
 config.php            Konfiguration
+docker-compose.yml    Docker-udviklingsmiljø (docker/php/, db/init/, .env.example)
 sql/schema.sql        Tabeller
 sql/seed.sql          Eksempeldata
 src/Recurrence.php    Udregning af datoer ud fra gentagelsesregler

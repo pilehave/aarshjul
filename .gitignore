@@ -1,3 +1,4 @@
 config.local.php
 storage/uploads/*
 !storage/uploads/.htaccess
+.env

@@ -13,6 +13,31 @@
   }
   if (rec) { rec.addEventListener('change', updateRules); updateRules(); }
 
+  // --- Formular: slutdato og varighed holdes i sync (begge datoer medregnes) ---
+  var startIn = document.getElementById('start_date');
+  var endIn = document.getElementById('period_end');
+  var durIn = document.getElementById('duration_days');
+  if (startIn && endIn && durIn) {
+    var DAY = 86400000;
+    var parse = function (v) { return /^\d{4}-\d{2}-\d{2}$/.test(v) ? Date.parse(v + 'T00:00:00Z') : NaN; };
+    var fmt = function (t) { return new Date(t).toISOString().slice(0, 10); };
+    var syncEnd = function () {
+      var s = parse(startIn.value), d = parseInt(durIn.value, 10);
+      if (!isNaN(s) && d >= 1) endIn.value = fmt(s + (d - 1) * DAY);
+      if (!isNaN(s)) endIn.min = startIn.value;
+    };
+    var syncDuration = function () {
+      var s = parse(startIn.value), e = parse(endIn.value);
+      if (isNaN(s) || isNaN(e)) return;
+      if (e < s) { endIn.value = startIn.value; e = s; }
+      durIn.value = Math.round((e - s) / DAY) + 1;
+    };
+    startIn.addEventListener('change', syncEnd);
+    durIn.addEventListener('input', syncEnd);
+    endIn.addEventListener('change', syncDuration);
+    if (!isNaN(parse(startIn.value))) endIn.min = startIn.value;
+  }
+
   // --- Formular: tilføj/fjern linkrækker ---
   var addLink = document.getElementById('add-link');
   if (addLink) {
