@@ -1,0 +1,164 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Tegner årshjulet som en selvstændig SVG (ingen ekstern CSS), så den både kan vises
+ * på siden og eksporteres direkte som SVG/PNG/PDF.
+ */
+final class Wheel
+{
+    private const SIZE = 1000;
+    private const C = 500;
+    private const R_MONTH_OUT = 490;
+    private const R_MONTH_IN = 440;
+    private const R_WEEK_IN = 418;
+    private const R_LANES_OUT = 410;
+    private const R_LANES_IN = 150;
+
+    public static function svg(int $year, array $occurrences, bool $links = true): string
+    {
+        $daysInYear = (int)(new DateTimeImmutable("$year-12-31"))->format('z') + 1;
+        $ang = fn(float $dayIndex) => $dayIndex / $daysInYear * 360.0; // 0° = 1. januar, øverst, med uret
+        $C = self::C;
+
+        $o = [];
+        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$d %1$d" width="%1$d" height="%1$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %2$d">', self::SIZE, $year);
+        $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern></defs>';
+        $o[] = sprintf('<rect width="%1$d" height="%1$d" fill="#ffffff"/>', self::SIZE);
+
+        // Månedsring
+        for ($m = 1; $m <= 12; $m++) {
+            $first = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $m));
+            $a1 = $ang((int)$first->format('z'));
+            $a2 = $ang((int)$first->format('z') + (int)$first->format('t'));
+            $fill = $m % 2 ? '#e9eef7' : '#dce4f2';
+            $o[] = sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="2"/>', self::arc($a1, $a2, self::R_MONTH_IN, self::R_MONTH_OUT), $fill);
+            $o[] = sprintf('<path d="%s" fill="#fafbfd" stroke="#e3e7ee" stroke-width="1"/>', self::arc($a1, $a2, self::R_LANES_IN, self::R_LANES_OUT));
+            $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]), 20, '#1f2d48', 'bold', 'm' . $m);
+        }
+
+        // Ugenumre (mandage)
+        $d = new DateTimeImmutable("$year-01-01");
+        $d = $d->modify('+' . ((8 - (int)$d->format('N')) % 7) . ' days');
+        for (; (int)$d->format('Y') === $year; $d = $d->modify('+7 days')) {
+            $a = $ang((int)$d->format('z'));
+            [$x1, $y1] = self::pt($a, self::R_WEEK_IN);
+            [$x2, $y2] = self::pt($a, self::R_MONTH_IN);
+            $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c4ccda" stroke-width="1"/>', $x1, $y1, $x2, $y2);
+            [$tx, $ty] = self::pt($a + 3.5 / $daysInYear * 360, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
+            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central">%d</text>', $tx, $ty, (int)$d->format('W'));
+        }
+
+        // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring. Korte begivenheder tegnes mindst $minSpan dage brede.
+        $minSpan = 3;
+        $series = [];
+        foreach ($occurrences as $occ) {
+            $s = (int)(new DateTimeImmutable(max($occ['date'], "$year-01-01")))->format('z');
+            $e = (int)(new DateTimeImmutable(min($occ['end'], "$year-12-31")))->format('z') + 1;
+            $series[$occ['event']['id']][] = [$occ, $s, max($e, $s + $minSpan)];
+        }
+        $lanes = [];   // lane => liste af [start, slut]
+        $placed = [];
+        $ownRing = false; // sæt til true for at give hver serie sin egen ring
+        foreach (array_values($series) as $idx => $items) {
+            for ($lane = $ownRing ? $idx : 0; ; $lane++) {
+                $free = true;
+                foreach ($items as [, $s, $e]) {
+                    foreach ($lanes[$lane] ?? [] as [$ls, $le]) {
+                        if ($s < $le + 1 && $ls < $e + 1) {
+                            $free = false;
+                            break 2;
+                        }
+                    }
+                }
+                if ($free) {
+                    break;
+                }
+            }
+            foreach ($items as [$occ, $s, $e]) {
+                $lanes[$lane][] = [$s, $e];
+                $placed[] = [$occ, $s, $e, $lane];
+            }
+        }
+        $laneW = min(44, (self::R_LANES_OUT - self::R_LANES_IN) / max(1, count($lanes)));
+
+        foreach ($placed as $i => [$occ, $s, $e, $lane]) {
+            $ev = $occ['event'];
+            $rOut = self::R_LANES_OUT - $lane * $laneW - 2;
+            $rIn = $rOut - $laneW + 4;
+            $a1 = $ang($s);
+            $a2 = $ang($e);
+            $tip = $ev['title'] . ' · ' . date_da($occ['date']) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end']) : '')
+                . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
+                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '');
+            $opacity = $occ['done'] ? '0.45' : '1';
+            $g = sprintf('<g opacity="%s"><title>%s</title>', $opacity, h($tip));
+            $g .= sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="1"/>', self::arc($a1, $a2, $rIn, $rOut), h($ev['color']));
+            if ($occ['blocked']) {
+                $g .= sprintf('<path d="%s" fill="url(#blocked)"/>', self::arc($a1, $a2, $rIn, $rOut));
+            }
+            $fontSize = min(13, max(8, $laneW * 0.4));
+            $g .= self::label($a1, $a2, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);
+            $g .= '</g>';
+            if ($links) {
+                $g = sprintf('<a href="event.php?id=%d&amp;year=%d">%s</a>', $ev['id'], $year, $g);
+            }
+            $o[] = $g;
+        }
+
+        // I dag
+        if ((int)date('Y') === $year) {
+            $a = $ang((int)date('z') + 0.5);
+            [$x1, $y1] = self::pt($a, self::R_LANES_IN - 6);
+            [$x2, $y2] = self::pt($a, self::R_MONTH_OUT);
+            $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#d64545" stroke-width="2.5" stroke-linecap="round"/>', $x1, $y1, $x2, $y2);
+        }
+
+        // Midte
+        $o[] = sprintf('<circle cx="%1$d" cy="%1$d" r="%2$d" fill="#1f2d48"/>', $C, self::R_LANES_IN - 10);
+        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="64" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%3$d</text>', $C, $C - 8, $year);
+        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="18" fill="#b9c4da" text-anchor="middle">Årshjul</text>', $C, $C + 50);
+        $o[] = '</svg>';
+        return implode("\n", $o);
+    }
+
+    private static function pt(float $deg, float $r): array
+    {
+        $rad = deg2rad($deg - 90);
+        return [self::C + $r * cos($rad), self::C + $r * sin($rad)];
+    }
+
+    private static function arc(float $a1, float $a2, float $rIn, float $rOut): string
+    {
+        $a2 = min($a2, $a1 + 359.99);
+        $large = ($a2 - $a1) > 180 ? 1 : 0;
+        [$x1, $y1] = self::pt($a1, $rOut);
+        [$x2, $y2] = self::pt($a2, $rOut);
+        [$x3, $y3] = self::pt($a2, $rIn);
+        [$x4, $y4] = self::pt($a1, $rIn);
+        return sprintf('M%.2f %.2f A%.2f %.2f 0 %d 1 %.2f %.2f L%.2f %.2f A%.2f %.2f 0 %d 0 %.2f %.2f Z',
+            $x1, $y1, $rOut, $rOut, $large, $x2, $y2, $x3, $y3, $rIn, $rIn, $large, $x4, $y4);
+    }
+
+    /** Tekst langs en bue. Teksten forkortes, så den passer; i nederste halvdel vendes den, så den kan læses. */
+    private static function label(float $a1, float $a2, float $r, string $text, float $size, string $fill, string $weight, string $id): string
+    {
+        $len = deg2rad($a2 - $a1) * $r - 6;
+        $maxChars = (int)floor($len / ($size * 0.56));
+        if ($maxChars < 5 && mb_strlen($text) > $maxChars) {
+            return '';
+        }
+        if (mb_strlen($text) > $maxChars) {
+            $text = rtrim(mb_substr($text, 0, $maxChars - 1)) . '…';
+        }
+        $mid = fmod(($a1 + $a2) / 2, 360);
+        $flip = $mid > 90 && $mid < 270;
+        $rr = $flip ? $r + $size * 0.35 : $r - $size * 0.35;
+        [$x1, $y1] = self::pt($flip ? $a2 : $a1, $rr);
+        [$x2, $y2] = self::pt($flip ? $a1 : $a2, $rr);
+        $large = ($a2 - $a1) > 180 ? 1 : 0;
+        $path = sprintf('M%.2f %.2f A%.2f %.2f 0 %d %d %.2f %.2f', $x1, $y1, $rr, $rr, $large, $flip ? 0 : 1, $x2, $y2);
+        return sprintf('<path id="p-%1$s" d="%2$s" fill="none"/><text font-size="%3$.1f" font-weight="%4$s" fill="%5$s"><textPath href="#p-%1$s" startOffset="50%%" text-anchor="middle">%6$s</textPath></text>',
+            $id, $path, $size, $weight, $fill, h($text));
+    }
+}
