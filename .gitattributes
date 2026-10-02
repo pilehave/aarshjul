@@ -1,0 +1,2 @@
+# Shell-scripts køres i Linux-containere og skal have LF, også ved checkout på Windows.
+*.sh text eol=lf

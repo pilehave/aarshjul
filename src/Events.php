@@ -153,6 +153,19 @@ final class Events
         }
         $color = preg_match('/^#[0-9a-fA-F]{6}$/', (string)($in['color'] ?? '')) ? $in['color'] : '#2f6fde';
         $duration = max(1, min(366, (int)($in['duration_days'] ?? 1)));
+        // Er en slutdato angivet, bestemmer den varigheden (begge datoer medregnes)
+        $periodEnd = trim((string)($in['period_end'] ?? ''));
+        if ($periodEnd !== '') {
+            $s = DateTimeImmutable::createFromFormat('!Y-m-d', $startDate);
+            $pe = DateTimeImmutable::createFromFormat('!Y-m-d', $periodEnd);
+            if (!$s || !$pe || $pe < $s) {
+                $errors[] = 'Slutdatoen skal være en gyldig dato på eller efter startdatoen.';
+            } elseif ($s->diff($pe)->days + 1 > 366) {
+                $errors[] = 'En begivenhed kan højst vare 366 dage.';
+            } else {
+                $duration = $s->diff($pe)->days + 1;
+            }
+        }
         $interval = max(1, min(99, (int)($in['rec_interval'] ?? 1)));
         $ruleMonth = (int)($in['rule_month'] ?? 0) ?: null;
         $ruleWeekday = null;
