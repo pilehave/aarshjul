@@ -42,6 +42,12 @@ if ($errors) {
     $e['links'] = array_map(fn($u, $l) => ['url' => $u, 'label' => $l], (array)($p['link_url'] ?? []), (array)($p['link_label'] ?? []));
     $e['depends_on'] = array_map('intval', (array)($p['depends_on'] ?? []));
 }
+// Slutdato for den enkelte forekomst gemmes ikke; den udledes af startdato + varighed
+$periodStart = DateTimeImmutable::createFromFormat('!Y-m-d', (string)$e['start_date']);
+$periodEnd = $errors && isset($_POST['period_end']) ? (string)$_POST['period_end'] : '';
+if ($periodEnd === '' && $periodStart) {
+    $periodEnd = $periodStart->modify('+' . (max(1, (int)$e['duration_days']) - 1) . ' days')->format('Y-m-d');
+}
 $peopleTxt = implode(', ', array_column($e['people'], 'name'));
 $links = $e['links'] ?: [['url' => '', 'label' => '']];
 $nextDates = $id ? Recurrence::occurrences($all[$id], date('Y-m-d'), (new DateTimeImmutable('+3 years'))->format('Y-m-d')) : [];
@@ -76,8 +82,9 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
   <fieldset>
     <legend>Dato og gentagelse</legend>
     <div class="row">
-      <label>Startdato *<input type="date" name="start_date" required value="<?= h($e['start_date']) ?>"></label>
-      <label>Varighed (dage)<input type="number" name="duration_days" min="1" max="366" value="<?= (int)$e['duration_days'] ?>"></label>
+      <label>Startdato *<input type="date" name="start_date" id="start_date" required value="<?= h($e['start_date']) ?>"></label>
+      <label>Slutdato<input type="date" name="period_end" id="period_end" value="<?= h($periodEnd) ?>"></label>
+      <label>Varighed (dage)<input type="number" name="duration_days" id="duration_days" min="1" max="366" value="<?= (int)$e['duration_days'] ?>"></label>
       <label class="grow">Gentagelse
         <select name="recurrence" id="recurrence">
           <?php foreach (Recurrence::RULES as $k => $label): ?>
