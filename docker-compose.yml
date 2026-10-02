@@ -1,0 +1,57 @@
+# Udviklingsmiljø til Docker Desktop. Start med:  docker compose up -d --build
+name: aarshjul
+
+services:
+  web:
+    build: ./docker/php
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      # Hele projektmappen mountes, så ændringer i VS Code slår igennem med det samme.
+      # Apache bruger public/ som webrod (se docker/php/vhost.conf).
+      - ./:/var/www/html
+    environment:
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-aarshjul}
+      DB_USER: ${DB_USER:-aarshjul}
+      DB_PASS: ${DB_PASS:-aarshjul}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_danish_ci"]
+    ports:
+      - "${DB_FORWARD_PORT:-3306}:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-root}
+      MARIADB_DATABASE: ${DB_NAME:-aarshjul}
+      MARIADB_USER: ${DB_USER:-aarshjul}
+      MARIADB_PASSWORD: ${DB_PASS:-aarshjul}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./sql:/sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    ports:
+      - "${PMA_PORT:-8081}:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_ROOT_PASS:-root}
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
