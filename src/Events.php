@@ -83,13 +83,16 @@ final class Events
     }
 
     /** Alle forekomster i et år, sorteret efter dato, med status for flueben og afhængigheder. */
-    public static function occurrencesForYear(int $year, ?int $personId = null, ?array $all = null): array
+    public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null): array
     {
         $all ??= self::all();
         $done = self::completions();
         $rows = [];
         foreach ($all as $e) {
             if ($personId && !in_array($personId, array_column($e['people'], 'id'), true)) {
+                continue;
+            }
+            if ($categoryId && (int)$e['category_id'] !== $categoryId) {
                 continue;
             }
             foreach (Recurrence::occurrences($e, "$year-01-01", "$year-12-31") as $date) {

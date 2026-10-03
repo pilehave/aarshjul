@@ -141,6 +141,23 @@
     });
   }
 
+  // --- Forside: skjul/vis begivenhedslisten, så hjulet kan blive større ---
+  var toggleList = document.getElementById('toggle-list');
+  if (toggleList) {
+    var root = document.documentElement;
+    var syncToggle = function () {
+      var hidden = root.classList.contains('list-hidden');
+      toggleList.textContent = hidden ? 'Vis begivenheder' : 'Skjul begivenheder';
+      toggleList.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    };
+    toggleList.addEventListener('click', function () {
+      var hidden = root.classList.toggle('list-hidden');
+      try { localStorage.setItem('aarshjul.listHidden', hidden ? '1' : '0'); } catch (e) {}
+      syncToggle();
+    });
+    syncToggle();
+  }
+
   // --- Eksport ---
   var wheel = document.getElementById('wheel');
   if (!wheel) return;

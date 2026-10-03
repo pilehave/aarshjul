@@ -5,21 +5,30 @@ require __DIR__ . '/../src/layout.php';
 
 $year = selected_year();
 $personId = (int)($_GET['person'] ?? 0) ?: null;
-$occ = Events::occurrencesForYear($year, $personId);
+$categoryId = (int)($_GET['category'] ?? 0) ?: null;
+$occ = Events::occurrencesForYear($year, $personId, $categoryId);
 $people = Events::people();
-$q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId] + $p));
+$categories = Categories::all();
+$q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId, 'category' => $categoryId] + $p));
 
 page_header("Årshjul $year");
 ?>
 <div class="toolbar">
+ <div class="toolbar-row">
   <div class="yearnav">
     <a class="btn" href="<?= h($q(['year' => $year - 1])) ?>">‹ <?= $year - 1 ?></a>
     <strong><?= $year ?></strong>
     <a class="btn" href="<?= h($q(['year' => $year + 1])) ?>"><?= $year + 1 ?> ›</a>
   </div>
+  <div class="spacer"></div>
+  <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
+  <a class="btn" href="categories.php?year=<?= $year ?>">Kategorier</a>
+  <a class="btn" href="people.php?year=<?= $year ?>">Personer</a>
+ </div>
+ <div class="toolbar-row">
   <form method="get" class="filter">
     <input type="hidden" name="year" value="<?= $year ?>">
-    <label>Person
+    <label><span class="field-label">Person</span>
       <select name="person" onchange="this.form.submit()">
         <option value="">Alle</option>
         <?php foreach ($people as $p): ?>
@@ -27,20 +36,33 @@ page_header("Årshjul $year");
         <?php endforeach; ?>
       </select>
     </label>
+    <label><span class="field-label">Kategori</span>
+      <select name="category" onchange="this.form.submit()">
+        <option value="">Alle</option>
+        <?php foreach ($categories as $id => $c): ?>
+          <option value="<?= (int)$id ?>" <?= $categoryId === (int)$id ? 'selected' : '' ?>><?= h($c['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </label>
   </form>
+  <button class="btn" type="button" id="toggle-list" aria-controls="event-list" aria-expanded="true">Skjul begivenheder</button>
   <div class="spacer"></div>
-  <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
-  <a class="btn" href="categories.php?year=<?= $year ?>">Kategorier</a>
-  <a class="btn" href="people.php?year=<?= $year ?>">Personer</a>
   <div class="export">
-    <span>Eksportér:</span>
-    <a class="btn" href="export_xlsx.php<?= h($q([])) ?>">Excel</a>
-    <button class="btn" type="button" data-export="png">PNG</button>
-    <button class="btn" type="button" data-export="pdf">PDF</button>
-    <a class="btn" href="wheel_svg.php<?= h($q(['download' => 1])) ?>">SVG</a>
+    <span class="field-label">Eksportér</span>
+    <div class="btn-group">
+      <a class="btn" href="export_xlsx.php<?= h($q([])) ?>">Excel</a>
+      <button class="btn" type="button" data-export="png">PNG</button>
+      <button class="btn" type="button" data-export="pdf">PDF</button>
+      <a class="btn" href="wheel_svg.php<?= h($q(['download' => 1])) ?>">SVG</a>
+    </div>
   </div>
+ </div>
 </div>
 
+<script>
+  // Sæt klassen før siden tegnes, så listen ikke blinker frem, når den er skjult
+  try { if (localStorage.getItem('aarshjul.listHidden') === '1') document.documentElement.classList.add('list-hidden'); } catch (e) {}
+</script>
 <div class="layout">
   <section class="wheel" id="wheel" data-year="<?= $year ?>">
     <?= Wheel::svg($year, $occ) ?>

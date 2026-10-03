@@ -5,9 +5,10 @@ require __DIR__ . '/../src/Xlsx.php';
 
 $year = selected_year();
 $personId = (int)($_GET['person'] ?? 0) ?: null;
+$categoryId = (int)($_GET['category'] ?? 0) ?: null;
 
 $rows = [['Startdato', 'Slutdato', 'Titel', 'Beskrivelse', 'Gentagelse', 'Personer', 'Afhænger af', 'Klar (forudsætninger opfyldt)', 'Opfyldt', 'Links', 'Filer']];
-foreach (Events::occurrencesForYear($year, $personId) as $o) {
+foreach (Events::occurrencesForYear($year, $personId, $categoryId) as $o) {
     $e = $o['event'];
     $rows[] = [
         new DateTimeImmutable($o['date']),

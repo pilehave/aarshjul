@@ -23,15 +23,33 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .flash-error { background: #fdecea; border-color: #f3b8b1; }
 .flash ul { margin: 0; padding-left: 18px; }
 
-.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
-.yearnav { display: flex; gap: 10px; align-items: center; font-size: 20px; }
-.filter select { margin-left: 6px; padding: 5px; }
+.toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.toolbar .btn, .filter select { height: 34px; line-height: 20px; }
+.yearnav { display: flex; gap: 10px; align-items: center; }
+.yearnav strong { font-size: 22px; min-width: 3ch; text-align: center; }
+.filter { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.filter label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.field-label { color: var(--muted); font-size: 14px; }
+.filter select { min-width: 160px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
+.filter select:hover { border-color: #b8c2d3; }
 .spacer { flex: 1; }
-.export { display: flex; gap: 6px; align-items: center; }
+.export { display: flex; gap: 8px; align-items: center; }
+.btn-group { display: inline-flex; }
+.btn-group .btn { border-radius: 0; margin-left: -1px; }
+.btn-group .btn:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+.btn-group .btn:last-child { border-radius: 0 6px 6px 0; }
+.btn-group .btn:hover { position: relative; }
 .export span { color: var(--muted); font-size: 14px; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+/* Begivenhedslisten skjult: hjulet fylder hele bredden, begrænset af vinduets højde */
+.list-hidden main { max-width: none; }
+.list-hidden .layout { grid-template-columns: 1fr; }
+.list-hidden #event-list { display: none; }
+.list-hidden .wheel { position: static; }
+.list-hidden .wheel svg { width: min(100%, max(480px, calc(100vh - 190px))); margin: 0 auto; }
 .wheel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; position: sticky; top: 12px; }
 .wheel svg { width: 100%; height: auto; display: block; }
 .wheel a path:first-of-type { cursor: pointer; }
