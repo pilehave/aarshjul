@@ -16,6 +16,7 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .btn:hover { border-color: #b8c2d3; }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 .btn.danger { background: #fff; border-color: var(--danger); color: var(--danger); }
+.btn.icon { display: inline-flex; align-items: center; justify-content: center; padding: 6px 8px; }
 .btn.small { padding: 3px 8px; font-size: 13px; }
 .btn:disabled { opacity: .5; cursor: wait; }
 
@@ -70,6 +71,13 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .check input:disabled { cursor: not-allowed; }
 .occ-title { font-weight: 600; text-decoration: none; color: var(--ink); }
 .occ-title:hover { text-decoration: underline; }
+.occ-desc { margin-top: 4px; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.occ-desc.is-open { display: block; }
+.occ-more { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; font-size: 13px; cursor: pointer; }
+.occ-more:hover { text-decoration: underline; }
+.occ-cat { margin-left: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.occ-cat::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 5px; vertical-align: 1px; }
 .occ-meta { font-size: 13px; color: var(--muted); }
 .chips { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { font-size: 12px; background: #eef2f9; border-radius: 10px; padding: 1px 8px; }

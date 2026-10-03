@@ -17,31 +17,35 @@ final class Wheel
 
     public static function svg(int $year, array $occurrences, bool $links = true): string
     {
-        $daysInYear = (int)(new DateTimeImmutable("$year-12-31"))->format('z') + 1;
-        $ang = fn(float $dayIndex) => $dayIndex / $daysInYear * 360.0; // 0° = 1. januar, øverst, med uret
+        [$from, $to] = year_bounds($year);
+        $start = new DateTimeImmutable($from);
+        $day = fn(string $ymd) => (int)$start->diff(new DateTimeImmutable($ymd))->format('%r%a'); // dage siden $from
+        $daysInYear = $day($to) + 1;
+        $ang = fn(float $dayIndex) => $dayIndex / $daysInYear * 360.0; // 0° = 1. i startmåneden, øverst, med uret
+        $label = year_label($year);
         $C = self::C;
 
         $o = [];
-        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$d %1$d" width="%1$d" height="%1$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %2$d">', self::SIZE, $year);
+        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$d %1$d" width="%1$d" height="%1$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %2$s">', self::SIZE, h($label));
         $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern></defs>';
         $o[] = sprintf('<rect width="%1$d" height="%1$d" fill="#ffffff"/>', self::SIZE);
 
         // Månedsring
-        for ($m = 1; $m <= 12; $m++) {
-            $first = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $m));
-            $a1 = $ang((int)$first->format('z'));
-            $a2 = $ang((int)$first->format('z') + (int)$first->format('t'));
-            $fill = $m % 2 ? '#e9eef7' : '#dce4f2';
+        for ($i = 0; $i < 12; $i++) {
+            $first = $start->modify("+$i months");
+            $m = (int)$first->format('n');
+            $a1 = $ang($day($first->format('Y-m-d')));
+            $a2 = $ang($day($first->format('Y-m-d')) + (int)$first->format('t'));
+            $fill = $i % 2 ? '#dce4f2' : '#e9eef7';
             $o[] = sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="2"/>', self::arc($a1, $a2, self::R_MONTH_IN, self::R_MONTH_OUT), $fill);
             $o[] = sprintf('<path d="%s" fill="#fafbfd" stroke="#e3e7ee" stroke-width="1"/>', self::arc($a1, $a2, self::R_LANES_IN, self::R_LANES_OUT));
             $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]), 20, '#1f2d48', 'bold', 'm' . $m);
         }
 
         // Ugenumre (mandage)
-        $d = new DateTimeImmutable("$year-01-01");
-        $d = $d->modify('+' . ((8 - (int)$d->format('N')) % 7) . ' days');
-        for (; (int)$d->format('Y') === $year; $d = $d->modify('+7 days')) {
-            $a = $ang((int)$d->format('z'));
+        $d = $start->modify('+' . ((8 - (int)$start->format('N')) % 7) . ' days');
+        for (; $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
+            $a = $ang($day($d->format('Y-m-d')));
             [$x1, $y1] = self::pt($a, self::R_WEEK_IN);
             [$x2, $y2] = self::pt($a, self::R_MONTH_IN);
             $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c4ccda" stroke-width="1"/>', $x1, $y1, $x2, $y2);
@@ -53,8 +57,8 @@ final class Wheel
         $minSpan = 3;
         $series = [];
         foreach ($occurrences as $occ) {
-            $s = (int)(new DateTimeImmutable(max($occ['date'], "$year-01-01")))->format('z');
-            $e = (int)(new DateTimeImmutable(min($occ['end'], "$year-12-31")))->format('z') + 1;
+            $s = $day(max($occ['date'], $from));
+            $e = $day(min($occ['end'], $to)) + 1;
             $series[$occ['event']['id']][] = [$occ, $s, max($e, $s + $minSpan)];
         }
         $lanes = [];   // lane => liste af [start, slut]
@@ -107,8 +111,9 @@ final class Wheel
         }
 
         // I dag
-        if ((int)date('Y') === $year) {
-            $a = $ang((int)date('z') + 0.5);
+        $today = date('Y-m-d');
+        if ($today >= $from && $today <= $to) {
+            $a = $ang($day($today) + 0.5);
             [$x1, $y1] = self::pt($a, self::R_LANES_IN - 6);
             [$x2, $y2] = self::pt($a, self::R_MONTH_OUT);
             $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#d64545" stroke-width="2.5" stroke-linecap="round"/>', $x1, $y1, $x2, $y2);
@@ -116,7 +121,7 @@ final class Wheel
 
         // Midte
         $o[] = sprintf('<circle cx="%1$d" cy="%1$d" r="%2$d" fill="#1f2d48"/>', $C, self::R_LANES_IN - 10);
-        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="64" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%3$d</text>', $C, $C - 8, $year);
+        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="%3$d" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%4$s</text>', $C, $C - 8, strlen($label) > 4 ? 52 : 64, h($label));
         $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="18" fill="#b9c4da" text-anchor="middle">Årshjul</text>', $C, $C + 50);
         $o[] = '</svg>';
         return implode("\n", $o);

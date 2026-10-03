@@ -25,8 +25,9 @@ foreach (Events::occurrencesForYear($year, $personId, $categoryId) as $o) {
     ];
 }
 
-$data = Xlsx::build("Årshjul $year", $rows, [12, 12, 30, 45, 30, 28, 28, 14, 10, 45, 30]);
+$label = str_replace('/', '-', year_label($year)); // "/" må ikke indgå i et arknavn
+$data = Xlsx::build("Årshjul $label", $rows, [12, 12, 30, 45, 30, 28, 28, 14, 10, 45, 30]);
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header("Content-Disposition: attachment; filename=\"aarshjul-$year.xlsx\"");
+header("Content-Disposition: attachment; filename=\"aarshjul-$label.xlsx\"");
 header('Content-Length: ' . strlen($data));
 echo $data;

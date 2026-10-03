@@ -22,7 +22,7 @@ $deleted = array_map('intval', (array)($in['delete'] ?? []));
 
 page_header('Kategorier');
 ?>
-<p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= $year ?></a></p>
+<p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
 <h1>Kategorier</h1>
 
 <?php if ($errors): ?>

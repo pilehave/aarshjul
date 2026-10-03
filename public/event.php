@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Formularværdier: indsendte værdier ved fejl, ellers fra databasen, ellers standard
 $e = $id ? $all[$id] : [
-    'title' => '', 'description' => '', 'category_id' => '', 'start_date' => "$year-01-01",
+    'title' => '', 'description' => '', 'category_id' => '', 'start_date' => year_bounds($year)[0],
     'end_date' => '', 'duration_days' => 1, 'recurrence' => 'none', 'rec_interval' => 1,
     'rule_month' => null, 'rule_weekday' => 1, 'rule_nth' => 1, 'people' => [], 'links' => [], 'files' => [], 'depends_on' => [],
 ];
@@ -56,7 +56,7 @@ $dependents = $id ? array_filter($all, fn($x) => in_array($id, $x['depends_on'],
 
 page_header($id ? $e['title'] : 'Ny begivenhed');
 ?>
-<p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= $year ?></a></p>
+<p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
 <h1><?= $id ? 'Rediger: ' . h($e['title']) : 'Ny begivenhed' ?></h1>
 
 <?php if ($errors): ?>

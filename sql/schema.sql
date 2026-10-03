@@ -5,8 +5,14 @@ CREATE DATABASE IF NOT EXISTS aarshjul CHARACTER SET utf8mb4 COLLATE utf8mb4_dan
 USE aarshjul;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
+DROP TABLE IF EXISTS settings, event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- Indstillinger for hele årshjulet som navn/værdi-par (fx start_month = 8 for august).
+CREATE TABLE settings (
+    name   VARCHAR(50) NOT NULL PRIMARY KEY,
+    value  VARCHAR(255) NOT NULL
+) ENGINE=InnoDB;
 
 -- Kategorier giver begivenhederne et navn og en farve i hjulet og listen.
 CREATE TABLE categories (

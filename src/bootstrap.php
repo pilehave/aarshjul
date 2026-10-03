@@ -7,6 +7,7 @@ session_start();
 
 $GLOBALS['config'] = require __DIR__ . '/../config.php';
 
+require __DIR__ . '/Settings.php';
 require __DIR__ . '/Recurrence.php';
 require __DIR__ . '/Categories.php';
 require __DIR__ . '/People.php';
@@ -86,8 +87,26 @@ function date_da(string $ymd, bool $withYear = false): string
     return $d->format('j') . '. ' . MONTHS_DA[(int)$d->format('n')] . ($withYear ? ' ' . $d->format('Y') : '');
 }
 
+/**
+ * Årshjulet for $year starter den 1. i startmåneden (se Settings) og varer 12 måneder.
+ * Med startmåned august er 2026 altså perioden 1. august 2026 – 31. juli 2027.
+ */
 function selected_year(): int
 {
-    $y = (int)($_GET['year'] ?? date('Y'));
-    return ($y >= 1970 && $y <= 2200) ? $y : (int)date('Y');
+    $current = (int)date('Y') - ((int)date('n') < Settings::startMonth() ? 1 : 0);
+    $y = (int)($_GET['year'] ?? $current);
+    return ($y >= 1970 && $y <= 2200) ? $y : $current;
+}
+
+/** @return array{0:string,1:string} første og sidste dato (Y-m-d) i årshjulet for $year */
+function year_bounds(int $year): array
+{
+    $from = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, Settings::startMonth()));
+    return [$from->format('Y-m-d'), $from->modify('+1 year -1 day')->format('Y-m-d')];
+}
+
+/** "2026", eller "2026/27", når årshjulet ikke starter i januar */
+function year_label(int $year): string
+{
+    return Settings::startMonth() === 1 ? (string)$year : sprintf('%d/%02d', $year, ($year + 1) % 100);
 }

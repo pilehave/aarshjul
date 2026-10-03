@@ -141,6 +141,23 @@
     });
   }
 
+  // --- Forside: beskrivelser vises med 2 linjer; "Vis mere" kun når teksten faktisk er længere ---
+  var descs = document.querySelectorAll('.occ-desc');
+  function updateDescToggles() {
+    descs.forEach(function (d) {
+      if (d.classList.contains('is-open')) return;
+      d.nextElementSibling.hidden = d.scrollHeight <= d.clientHeight + 1;
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('.occ-more');
+    if (!btn) return;
+    var open = btn.previousElementSibling.classList.toggle('is-open');
+    btn.textContent = open ? 'Vis mindre' : 'Vis mere';
+  });
+  window.addEventListener('resize', updateDescToggles);
+  updateDescToggles();
+
   // --- Forside: skjul/vis begivenhedslisten, så hjulet kan blive større ---
   var toggleList = document.getElementById('toggle-list');
   if (toggleList) {
@@ -154,6 +171,7 @@
       var hidden = root.classList.toggle('list-hidden');
       try { localStorage.setItem('aarshjul.listHidden', hidden ? '1' : '0'); } catch (e) {}
       syncToggle();
+      updateDescToggles(); // en skjult liste kan ikke måles, så tjek igen, når den vises
     });
     syncToggle();
   }
@@ -162,6 +180,7 @@
   var wheel = document.getElementById('wheel');
   if (!wheel) return;
   var year = wheel.getAttribute('data-year');
+  var fileYear = year.replace('/', '-');
 
   function wheelToCanvas(scale) {
     var svg = wheel.querySelector('svg').cloneNode(true);
@@ -208,6 +227,7 @@
       if (el.classList.contains('month')) { out.push({ month: el.textContent.trim() }); return; }
       out.push({
         title: el.querySelector('.occ-title').textContent.trim(),
+        category: el.querySelector('.occ-cat').textContent.trim(),
         meta: el.querySelector('.occ-meta').textContent.replace(/\s+/g, ' ').trim(),
         people: Array.prototype.map.call(el.querySelectorAll('.chip'), function (c) { return c.textContent; }).join(', '),
         done: el.classList.contains('is-done'),
@@ -231,12 +251,12 @@
       if (y > 280) { pdf.addPage(); y = 15; }
       if (r.month) { y += 3; pdf.setFontSize(12); pdf.setFont(undefined, 'bold'); pdf.text(r.month, 15, y); pdf.setFont(undefined, 'normal'); y += 6; return; }
       pdf.setFontSize(10);
-      pdf.text((r.done ? '[x] ' : '[  ] ') + r.title + (r.blocked && !r.done ? '  (venter på forudsætning)' : ''), 18, y); y += 4.5;
+      pdf.text((r.done ? '[x] ' : '[  ] ') + r.title + ' (' + r.category + ')' + (r.blocked && !r.done ? '  (venter på forudsætning)' : ''), 18, y); y += 4.5;
       pdf.setFontSize(8); pdf.setTextColor(100);
       pdf.splitTextToSize(r.meta + (r.people ? ' · ' + r.people : ''), 175).forEach(function (line) { pdf.text(line, 24, y); y += 4; });
       pdf.setTextColor(0); y += 1.5;
     });
-    pdf.save('aarshjul-' + year + '.pdf');
+    pdf.save('aarshjul-' + fileYear + '.pdf');
   }
 
   document.querySelectorAll('[data-export]').forEach(function (btn) {
@@ -244,7 +264,7 @@
       var kind = btn.getAttribute('data-export');
       btn.disabled = true;
       var job = kind === 'png'
-        ? wheelToCanvas(2).then(function (c) { download(c.toDataURL('image/png'), 'aarshjul-' + year + '.png'); })
+        ? wheelToCanvas(2).then(function (c) { download(c.toDataURL('image/png'), 'aarshjul-' + fileYear + '.png'); })
         : exportPdf();
       job.catch(function (e) { alert(e.message || e); }).finally(function () { btn.disabled = false; });
     });
