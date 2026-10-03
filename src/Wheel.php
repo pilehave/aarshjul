@@ -88,7 +88,7 @@ final class Wheel
             $rIn = $rOut - $laneW + 4;
             $a1 = $ang($s);
             $a2 = $ang($e);
-            $tip = $ev['title'] . ' · ' . date_da($occ['date']) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end']) : '')
+            $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . date_da($occ['date']) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end']) : '')
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
                 . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '');
             $opacity = $occ['done'] ? '0.45' : '1';

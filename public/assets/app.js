@@ -38,6 +38,92 @@
     if (!isNaN(parse(startIn.value))) endIn.min = startIn.value;
   }
 
+  // --- Formular: vis farven for den valgte kategori ---
+  var cat = document.getElementById('category_id');
+  var swatch = document.getElementById('category-swatch');
+  if (cat && swatch) {
+    var updateSwatch = function () {
+      swatch.style.background = cat.selectedOptions[0].getAttribute('data-color') || '#fff';
+    };
+    cat.addEventListener('change', updateSwatch);
+    updateSwatch();
+  }
+
+  // --- Formular: vælg personer ved at skrive navnet; valgte vises som "navn ×," i feltet ---
+  var picker = document.getElementById('people-picker');
+  if (picker) {
+    var all = JSON.parse(picker.getAttribute('data-people'));
+    var input = picker.querySelector('.token-input');
+    var list = picker.querySelector('.token-suggest');
+    var active = -1;
+    var chosen = function () {
+      return Array.prototype.map.call(picker.querySelectorAll('input[name="people[]"]'), function (i) { return +i.value; });
+    };
+    var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+    var updatePlaceholder = function () { input.placeholder = picker.querySelector('.token') ? '' : 'fx Anne Holm'; };
+    var hide = function () { list.hidden = true; active = -1; };
+    var highlight = function (n) {
+      var items = list.querySelectorAll('li[data-id]');
+      if (!items.length) return;
+      active = (n + items.length) % items.length;
+      items.forEach(function (li, i) { li.classList.toggle('active', i === active); });
+      items[active].scrollIntoView({ block: 'nearest' });
+    };
+    var suggest = function () {
+      var q = input.value.trim().toLowerCase();
+      var taken = chosen();
+      var hits = all.filter(function (p) { return taken.indexOf(p.id) === -1 && p.name.toLowerCase().indexOf(q) !== -1; });
+      if (!q && !hits.length) { hide(); return; }
+      list.innerHTML = hits.length
+        ? hits.map(function (p) { return '<li role="option" data-id="' + p.id + '">' + esc(p.name) + '</li>'; }).join('')
+        : '<li class="none">Ingen personer matcher. Opret dem under "Personer".</li>';
+      list.hidden = false;
+      active = -1;
+      if (hits.length && q) highlight(0);
+    };
+    var add = function (id) {
+      var p = all.filter(function (x) { return x.id === id; })[0];
+      if (!p || chosen().indexOf(id) !== -1) return;
+      var t = document.createElement('span');
+      t.className = 'token';
+      t.innerHTML = esc(p.name) + '<button type="button" class="token-x" title="Fjern ' + esc(p.name) + '" aria-label="Fjern ' + esc(p.name) + '">×</button>'
+        + '<input type="hidden" name="people[]" value="' + p.id + '">';
+      picker.insertBefore(t, input);
+      input.value = '';
+      updatePlaceholder();
+      input.focus();
+      suggest(); // vis de resterende personer, så den næste kan vælges med det samme
+    };
+    picker.addEventListener('click', function (ev) {
+      var x = ev.target.closest('.token-x');
+      if (x) { x.parentNode.remove(); updatePlaceholder(); input.focus(); suggest(); return; }
+      if (ev.target === picker || ev.target === input) { input.focus(); if (list.hidden) suggest(); }
+    });
+    list.addEventListener('mousedown', function (ev) {
+      ev.preventDefault(); // behold fokus i feltet
+      var li = ev.target.closest('li[data-id]');
+      if (li) add(+li.getAttribute('data-id'));
+    });
+    input.addEventListener('input', suggest);
+    input.addEventListener('focus', suggest);
+    input.addEventListener('blur', hide);
+    input.addEventListener('keydown', function (ev) {
+      var items = list.querySelectorAll('li[data-id]');
+      if (ev.key === 'ArrowDown') { ev.preventDefault(); if (list.hidden) suggest(); highlight(active + 1); }
+      else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlight(active - 1); }
+      else if (ev.key === 'Enter' || ev.key === ',') {
+        if (ev.key === 'Enter' && list.hidden && !input.value) return; // lad Enter sende formularen som normalt
+        ev.preventDefault();
+        if (!list.hidden && items[active]) add(+items[active].getAttribute('data-id'));
+      }
+      else if (ev.key === 'Escape') { hide(); }
+      else if (ev.key === 'Backspace' && !input.value) {
+        var tokens = picker.querySelectorAll('.token');
+        if (tokens.length) { tokens[tokens.length - 1].remove(); updatePlaceholder(); suggest(); }
+      }
+    });
+  }
+
   // --- Formular: tilføj/fjern linkrækker ---
   var addLink = document.getElementById('add-link');
   if (addLink) {

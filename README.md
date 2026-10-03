@@ -29,6 +29,13 @@ docker compose down                    # stop (data bevares)
 docker compose down -v                 # stop og slet databasen; init-scripts køres igen ved næste start
 ```
 
+**Opdatering af en eksisterende database:** init-scripts køres kun første gang. Ændringer i skemaet
+ligger som scripts i `sql/migrations/` og køres manuelt, fx:
+
+```powershell
+Get-Content sql/migrations/2026-10-03-categories.sql | docker compose exec -T db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"'
+```
+
 Er en port optaget (fx en lokal MySQL på 3306), så ret `DB_FORWARD_PORT`, `WEB_PORT` eller
 `PMA_PORT` i `.env`.
 
@@ -56,14 +63,17 @@ På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke
 
 - **Årshjul** for et valgt år (SVG), med månedsring, ugenumre, "i dag"-markør og filter på person.
   Klik på en begivenhed i hjulet for at redigere den.
-- **Opret, ret og slet** begivenheder med titel, farve, beskrivelse, varighed i dage.
+- **Opret, ret og slet** begivenheder med titel, kategori, beskrivelse, varighed i dage.
+- **Kategorier** med navn og farve redigeres under knappen "Kategorier". En begivenhed vælger en
+  eksisterende kategori og får dens farve. En kategori kan kun slettes, når ingen begivenheder bruger den.
 - **Gentagelser**: ingen, ugentlig, månedlig, årlig (alle med "hver N."), bestemt ugedag i
   måneden (fx 2. tirsdag, sidste fredag i april), **sidste uge i måneden** (fx sidste uge i maj)
   og bestemt ugenummer (fx uge 8). Valgfri slutdato for gentagelsen.
 - **Afhængigheder**: en begivenhed kan afhænge af én eller flere andre. Den kan først krydses af,
   når forudsætningerne er krydset af (tjekkes også på serveren). Cirkulære afhængigheder afvises.
 - **Flueben** gemmes pr. forekomst, så fx årets budgetudkast kan være opfyldt uden at næste års er det.
-- **Flere personer** pr. begivenhed (skrives kommasepareret, nye navne oprettes automatisk).
+- **Personer** oprettes, omdøbes og slettes under knappen "Personer". På en begivenhed vælges en eller
+  flere ved at skrive navnet; de vises i feltet som "navn ×," og fjernes med krydset.
 - **Flere links og filer** pr. begivenhed. Filer gemmes i `storage/uploads` med tilfældige navne.
 - **Eksport**: Excel (.xlsx, genereres uden biblioteker), PNG, PDF (hjul + liste, via jsPDF der
   ligger lokalt i `public/assets/vendor`) og SVG.
@@ -75,11 +85,15 @@ config.php            Konfiguration
 docker-compose.yml    Docker-udviklingsmiljø (docker/php/, db/init/, .env.example)
 sql/schema.sql        Tabeller
 sql/seed.sql          Eksempeldata
+sql/migrations/       Skemaændringer til eksisterende databaser
 src/Recurrence.php    Udregning af datoer ud fra gentagelsesregler
+src/Categories.php    Kategorier (navn + farve)
+src/People.php        Personer
 src/Events.php        Databaseadgang, validering, afhængigheder og flueben
 src/Wheel.php         Tegner hjulet som SVG
 src/Xlsx.php          Minimal .xlsx-skriver
-public/               Webrod: index.php (hjul + liste), event.php (formular), action.php (flueben),
+public/               Webrod: index.php (hjul + liste), event.php (formular), categories.php, people.php,
+                      action.php (flueben),
                       download.php (filer), export_xlsx.php, wheel_svg.php, assets/
 storage/uploads/      Uploadede filer
 ```

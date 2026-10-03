@@ -6,6 +6,8 @@ require __DIR__ . '/../src/layout.php';
 $year = selected_year();
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0) ?: null;
 $all = Events::all();
+$categories = Categories::all();
+$people = People::all();
 $errors = [];
 
 if ($id && !isset($all[$id])) {
@@ -29,16 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Formularværdier: indsendte værdier ved fejl, ellers fra databasen, ellers standard
 $e = $id ? $all[$id] : [
-    'title' => '', 'description' => '', 'color' => '#2f6fde', 'start_date' => "$year-01-01",
+    'title' => '', 'description' => '', 'category_id' => '', 'start_date' => "$year-01-01",
     'end_date' => '', 'duration_days' => 1, 'recurrence' => 'none', 'rec_interval' => 1,
     'rule_month' => null, 'rule_weekday' => 1, 'rule_nth' => 1, 'people' => [], 'links' => [], 'files' => [], 'depends_on' => [],
 ];
 if ($errors) {
     $p = $_POST;
-    $e = array_merge($e, array_intersect_key($p, array_flip(['title', 'description', 'color', 'start_date', 'end_date',
+    $e = array_merge($e, array_intersect_key($p, array_flip(['title', 'description', 'category_id', 'start_date', 'end_date',
         'duration_days', 'recurrence', 'rec_interval', 'rule_month', 'rule_weekday'])));
     $e['rule_nth'] = ($p['recurrence'] ?? '') === 'week_number' ? ($p['week_number'] ?? '') : ($p['rule_nth'] ?? 1);
-    $e['people'] = array_map(fn($n) => ['name' => trim($n)], array_filter(preg_split('/[,\n;]+/', (string)($p['people'] ?? ''))));
+    $e['people'] = array_values(array_intersect_key($people, array_flip(array_map('intval', (array)($p['people'] ?? [])))));
     $e['links'] = array_map(fn($u, $l) => ['url' => $u, 'label' => $l], (array)($p['link_url'] ?? []), (array)($p['link_label'] ?? []));
     $e['depends_on'] = array_map('intval', (array)($p['depends_on'] ?? []));
 }
@@ -48,7 +50,6 @@ $periodEnd = $errors && isset($_POST['period_end']) ? (string)$_POST['period_end
 if ($periodEnd === '' && $periodStart) {
     $periodEnd = $periodStart->modify('+' . (max(1, (int)$e['duration_days']) - 1) . ' days')->format('Y-m-d');
 }
-$peopleTxt = implode(', ', array_column($e['people'], 'name'));
 $links = $e['links'] ?: [['url' => '', 'label' => '']];
 $nextDates = $id ? Recurrence::occurrences($all[$id], date('Y-m-d'), (new DateTimeImmutable('+3 years'))->format('Y-m-d')) : [];
 $dependents = $id ? array_filter($all, fn($x) => in_array($id, $x['depends_on'], true)) : [];
@@ -70,13 +71,35 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
     <legend>Begivenhed</legend>
     <div class="row">
       <label class="grow">Titel *<input name="title" required maxlength="200" value="<?= h($e['title']) ?>"></label>
-      <label>Farve<input type="color" name="color" value="<?= h($e['color']) ?>"></label>
+      <label class="category">Kategori *
+        <span class="category-pick">
+          <span class="swatch" id="category-swatch"></span>
+          <select name="category_id" id="category_id" required>
+            <option value="">Vælg kategori</option>
+            <?php foreach ($categories as $c): ?>
+              <option value="<?= (int)$c['id'] ?>" data-color="<?= h($c['color']) ?>" <?= (int)$e['category_id'] === (int)$c['id'] ? 'selected' : '' ?>><?= h($c['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </span>
+      </label>
     </div>
+    <?php if (!$categories): ?>
+      <p class="muted">Der er ingen kategorier endnu. <a href="categories.php?year=<?= $year ?>">Opret en kategori</a> først.</p>
+    <?php endif; ?>
     <label>Beskrivelse<textarea name="description" rows="4"><?= h($e['description']) ?></textarea></label>
-    <label>Personer <small>(adskil med komma)</small>
-      <input name="people" list="people-list" value="<?= h($peopleTxt) ?>" placeholder="fx Anne Holm, Jonas Berg">
-    </label>
-    <datalist id="people-list"><?php foreach (Events::people() as $p): ?><option value="<?= h($p['name']) ?>"><?php endforeach; ?></datalist>
+    <div class="field">
+      <label for="people-input" class="field-label">Personer <small>(begynd at skrive et navn)</small></label>
+      <div class="tokens" id="people-picker" data-people="<?= h(json_encode(array_values(array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name']], $people)))) ?>">
+        <?php foreach ($e['people'] as $p): ?>
+          <span class="token"><?= h($p['name']) ?><button type="button" class="token-x" title="Fjern <?= h($p['name']) ?>" aria-label="Fjern <?= h($p['name']) ?>">×</button><input type="hidden" name="people[]" value="<?= (int)$p['id'] ?>"></span>
+        <?php endforeach; ?>
+        <input type="text" class="token-input" id="people-input" autocomplete="off" placeholder="<?= $e['people'] ? '' : 'fx Anne Holm' ?>">
+        <ul class="token-suggest" role="listbox" hidden></ul>
+      </div>
+      <?php if (!$people): ?>
+        <p class="muted">Der er ingen personer endnu. <a href="people.php?year=<?= $year ?>">Opret personer</a> først.</p>
+      <?php endif; ?>
+    </div>
   </fieldset>
 
   <fieldset>

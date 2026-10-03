@@ -30,6 +30,8 @@ page_header("Årshjul $year");
   </form>
   <div class="spacer"></div>
   <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
+  <a class="btn" href="categories.php?year=<?= $year ?>">Kategorier</a>
+  <a class="btn" href="people.php?year=<?= $year ?>">Personer</a>
   <div class="export">
     <span>Eksportér:</span>
     <a class="btn" href="export_xlsx.php<?= h($q([])) ?>">Excel</a>

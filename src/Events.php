@@ -8,7 +8,8 @@ final class Events
     {
         $pdo = db();
         $events = [];
-        foreach ($pdo->query('SELECT * FROM events ORDER BY start_date, title') as $e) {
+        foreach ($pdo->query('SELECT e.*, c.name AS category_name, c.color FROM events e
+            JOIN categories c ON c.id = e.category_id ORDER BY e.start_date, e.title') as $e) {
             $e += ['people' => [], 'links' => [], 'files' => [], 'depends_on' => []];
             $events[(int)$e['id']] = $e;
         }
@@ -151,7 +152,10 @@ final class Events
         if (!isset(Recurrence::RULES[$rec])) {
             $errors[] = 'Ukendt gentagelsesregel.';
         }
-        $color = preg_match('/^#[0-9a-fA-F]{6}$/', (string)($in['color'] ?? '')) ? $in['color'] : '#2f6fde';
+        $categoryId = (int)($in['category_id'] ?? 0);
+        if (!isset(Categories::all()[$categoryId])) {
+            $errors[] = 'Vælg en kategori.';
+        }
         $duration = max(1, min(366, (int)($in['duration_days'] ?? 1)));
         // Er en slutdato angivet, bestemmer den varigheden (begge datoer medregnes)
         $periodEnd = trim((string)($in['period_end'] ?? ''));
@@ -187,8 +191,10 @@ final class Events
             $ruleMonth = null;
         }
 
-        // Personer: kommasepareret eller én pr. linje
-        $names = array_values(array_unique(array_filter(array_map('trim', preg_split('/[,\n;]+/', (string)($in['people'] ?? ''))))));
+        // Personer: id'er på eksisterende personer
+        $people = People::all();
+        $personIds = array_values(array_unique(array_filter(array_map('intval', (array)($in['people'] ?? [])),
+            fn($p) => isset($people[$p]))));
 
         // Links
         $links = [];
@@ -240,34 +246,24 @@ final class Events
         $pdo = db();
         $pdo->beginTransaction();
         try {
-            $vals = [$title, trim((string)($in['description'] ?? '')) ?: null, $color, $startDate, $endDate,
+            $vals = [$title, trim((string)($in['description'] ?? '')) ?: null, $categoryId, $startDate, $endDate,
                 $duration, $rec, $interval, $ruleMonth, $ruleWeekday, $ruleNth];
             if ($id) {
-                $pdo->prepare('UPDATE events SET title=?, description=?, color=?, start_date=?, end_date=?, duration_days=?,
+                $pdo->prepare('UPDATE events SET title=?, description=?, category_id=?, start_date=?, end_date=?, duration_days=?,
                     recurrence=?, rec_interval=?, rule_month=?, rule_weekday=?, rule_nth=? WHERE id=?')
                     ->execute([...$vals, $id]);
             } else {
-                $pdo->prepare('INSERT INTO events (title, description, color, start_date, end_date, duration_days,
+                $pdo->prepare('INSERT INTO events (title, description, category_id, start_date, end_date, duration_days,
                     recurrence, rec_interval, rule_month, rule_weekday, rule_nth) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
                     ->execute($vals);
                 $id = (int)$pdo->lastInsertId();
             }
 
             $pdo->prepare('DELETE FROM event_people WHERE event_id=?')->execute([$id]);
-            $findPerson = $pdo->prepare('SELECT id FROM people WHERE name=?');
-            $addPerson = $pdo->prepare('INSERT INTO people (name) VALUES (?)');
-            $link = $pdo->prepare('INSERT IGNORE INTO event_people (event_id, person_id) VALUES (?,?)');
-            foreach ($names as $n) {
-                $findPerson->execute([$n]);
-                $pid = $findPerson->fetchColumn();
-                if (!$pid) {
-                    $addPerson->execute([$n]);
-                    $pid = $pdo->lastInsertId();
-                }
+            $link = $pdo->prepare('INSERT INTO event_people (event_id, person_id) VALUES (?,?)');
+            foreach ($personIds as $pid) {
                 $link->execute([$id, $pid]);
             }
-            // Ryd op i personer, der ikke længere bruges
-            $pdo->exec('DELETE FROM people WHERE id NOT IN (SELECT person_id FROM event_people)');
 
             $pdo->prepare('DELETE FROM event_links WHERE event_id=?')->execute([$id]);
             $ins = $pdo->prepare('INSERT INTO event_links (event_id, url, label) VALUES (?,?,?)');
@@ -327,6 +323,5 @@ final class Events
             @unlink(config('upload_dir') . '/' . $stored);
         }
         db()->prepare('DELETE FROM events WHERE id=?')->execute([$id]);
-        db()->exec('DELETE FROM people WHERE id NOT IN (SELECT person_id FROM event_people)');
     }
 }

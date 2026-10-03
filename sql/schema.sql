@@ -5,8 +5,16 @@ CREATE DATABASE IF NOT EXISTS aarshjul CHARACTER SET utf8mb4 COLLATE utf8mb4_dan
 USE aarshjul;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS event_completions, event_dependencies, event_files, event_links, event_people, people, events;
+DROP TABLE IF EXISTS event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- Kategorier giver begivenhederne et navn og en farve i hjulet og listen.
+CREATE TABLE categories (
+    id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name   VARCHAR(100) NOT NULL,
+    color  CHAR(7) NOT NULL,
+    UNIQUE KEY uq_categories_name (name)
+) ENGINE=InnoDB;
 
 -- En begivenhed er en "serie". Datoerne i et givet år udregnes ud fra gentagelsesreglen,
 -- så de gemmes ikke enkeltvis. Kun afkrydsninger (event_completions) gemmes pr. forekomst.
@@ -14,7 +22,7 @@ CREATE TABLE events (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title           VARCHAR(200) NOT NULL,
     description     TEXT NULL,
-    color           CHAR(7) NOT NULL DEFAULT '#2f6fde',
+    category_id     INT UNSIGNED NOT NULL,
     start_date      DATE NOT NULL,              -- første forekomst / gælder fra
     end_date        DATE NULL,                  -- gentagelser stopper efter denne dato (NULL = ingen slutdato)
     duration_days   SMALLINT UNSIGNED NOT NULL DEFAULT 1,
@@ -25,7 +33,8 @@ CREATE TABLE events (
     rule_weekday    TINYINT UNSIGNED NULL,      -- 1=mandag ... 7=søndag (nth_weekday, week_number)
     rule_nth        TINYINT NULL,               -- 1-4 eller -1 = sidste (nth_weekday); ugenummer 1-53 (week_number)
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_events_category FOREIGN KEY (category_id) REFERENCES categories(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE people (
