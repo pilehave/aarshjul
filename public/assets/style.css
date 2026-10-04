@@ -89,8 +89,10 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .modal-head h2 { flex: 1; margin: 0; font-size: 20px; overflow-wrap: anywhere; }
 .modal-close { border: 0; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 2px; }
 .modal-close:hover { color: var(--ink); }
-.modal-status { margin: 6px 0 0; font-size: 14px; }
-.modal-status.ok { color: var(--ok); }
+.modal-check { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 8px; }
+.modal-check label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.modal-check input { margin-top: 0; }
+.modal-status { font-size: 14px; }
 .modal-status.wait { color: var(--warn); }
 .modal-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 14px 0 0; }
 .modal-facts dt { color: var(--muted); font-size: 14px; }

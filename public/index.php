@@ -15,6 +15,8 @@ $label = year_label($year);
 $crossesYear = Settings::startMonth() !== 1;
 // Detaljer til modalen, der åbnes ved klik på en begivenhed i hjulet (nøglet som $occ, se data-occ i Wheel)
 $details = array_map(fn(array $o) => [
+    'id'          => (int)$o['event']['id'],
+    'date'        => $o['date'],
     'title'       => $o['event']['title'],
     'category'    => $o['event']['category_name'],
     'color'       => $o['event']['color'],
@@ -162,7 +164,15 @@ page_header("Årshjul $label");
     <h2 id="occ-modal-title" data-f="title"></h2>
     <button type="button" class="modal-close" data-close aria-label="Luk">×</button>
   </div>
-  <p class="modal-status" data-f="status" hidden></p>
+  <form method="post" action="action.php" class="check modal-check" data-f="check">
+    <?= csrf_field() ?>
+    <input type="hidden" name="do" value="toggle">
+    <input type="hidden" name="id">
+    <input type="hidden" name="date">
+    <input type="hidden" name="back">
+    <label><input type="checkbox" name="done" value="1"> Opfyldt</label>
+    <span class="modal-status wait" data-f="status" hidden>⏳ Venter på forudsætning</span>
+  </form>
   <dl class="modal-facts">
     <dt>Kategori</dt><dd><span class="modal-cat" data-f="category"></span></dd>
     <dt>Periode</dt><dd data-f="period"></dd>

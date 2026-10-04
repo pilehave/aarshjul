@@ -192,10 +192,17 @@
       field('recurrence').textContent = d.recurrence;
       field('description').textContent = d.description;
       field('description').hidden = !d.description;
-      var status = field('status');
-      status.textContent = d.done ? '✓ Opfyldt' : (d.blocked ? '⏳ Venter på forudsætning' : '');
-      status.className = 'modal-status' + (d.done ? ' ok' : ' wait');
-      status.hidden = !d.done && !d.blocked;
+      // Flueben: samme formular som i listen. Efter gem åbnes modalen igen via #forekomst=id_dato
+      var check = field('check');
+      var box = check.elements.done;
+      var locked = d.blocked && !d.done;
+      check.elements.id.value = d.id;
+      check.elements.date.value = d.date;
+      check.elements.back.value = location.pathname + location.search + '#forekomst=' + d.id + '_' + d.date;
+      box.checked = d.done;
+      box.disabled = locked;
+      box.parentNode.title = locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
+      field('status').hidden = !locked;
 
       var people = field('people');
       people.textContent = '';
@@ -237,6 +244,15 @@
       ev.preventDefault();
       openOcc(d);
     });
+    field('check').elements.done.addEventListener('change', function () { this.form.submit(); });
+    modal.addEventListener('close', function () {
+      if (location.hash.indexOf('#forekomst=') === 0) history.replaceState(null, '', location.pathname + location.search);
+    });
+    var reopen = /^#forekomst=(\d+)_(\d{4}-\d{2}-\d{2})$/.exec(location.hash);
+    if (reopen) {
+      var hit = details.filter(function (x) { return x.id === +reopen[1] && x.date === reopen[2]; })[0];
+      if (hit) openOcc(hit);
+    }
     modal.addEventListener('click', function (ev) {
       // Luk ved klik på en lukkeknap eller på baggrunden uden for modalen
       if (ev.target.closest('[data-close]') || ev.target === modal) modal.close();
