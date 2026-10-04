@@ -176,6 +176,73 @@
     syncToggle();
   }
 
+  // --- Forside: klik på en begivenhed i hjulet åbner en modal med detaljerne i stedet for redigering ---
+  var modal = document.getElementById('occ-modal');
+  var occData = document.getElementById('occ-data');
+  var wheelEl = document.getElementById('wheel');
+  if (modal && occData && wheelEl && modal.showModal) {
+    var details = JSON.parse(occData.textContent);
+    var field = function (name) { return modal.querySelector('[data-f="' + name + '"]'); };
+    var showRow = function (name, on) { modal.querySelectorAll('[data-row="' + name + '"]').forEach(function (el) { el.hidden = !on; }); };
+    var openOcc = function (d) {
+      field('title').textContent = d.title;
+      field('category').textContent = d.category;
+      field('category').style.setProperty('--c', d.color);
+      field('period').textContent = d.period;
+      field('recurrence').textContent = d.recurrence;
+      field('description').textContent = d.description;
+      field('description').hidden = !d.description;
+      var status = field('status');
+      status.textContent = d.done ? '✓ Opfyldt' : (d.blocked ? '⏳ Venter på forudsætning' : '');
+      status.className = 'modal-status' + (d.done ? ' ok' : ' wait');
+      status.hidden = !d.done && !d.blocked;
+
+      var people = field('people');
+      people.textContent = '';
+      d.people.forEach(function (name) {
+        var c = document.createElement('span');
+        c.className = 'chip'; c.textContent = name;
+        people.appendChild(c);
+      });
+      showRow('people', d.people.length > 0);
+
+      var prereqs = field('prereqs');
+      prereqs.textContent = '';
+      d.prereqs.forEach(function (p) {
+        var div = document.createElement('div');
+        div.className = 'prereq ' + (p.done ? 'ok' : 'wait');
+        div.textContent = (p.done ? '✓ ' : '⏳ ') + p.title + ' (' + (p.date || 'ingen forekomst') + ')';
+        prereqs.appendChild(div);
+      });
+      showRow('prereqs', d.prereqs.length > 0);
+
+      var dependents = field('dependents');
+      dependents.textContent = '';
+      d.dependents.forEach(function (p) {
+        var div = document.createElement('div');
+        div.className = 'prereq';
+        div.textContent = '→ ' + p.title + ' (' + (p.date || 'ingen forekomst') + ')';
+        dependents.appendChild(div);
+      });
+      showRow('dependents', d.dependents.length > 0);
+
+      field('edit').href = d.edit;
+      modal.showModal();
+    };
+    wheelEl.addEventListener('click', function (ev) {
+      var a = ev.target.closest('a[data-occ]');
+      if (!a || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return; // ctrl-klik o.l. åbner stadig redigering
+      var d = details[a.getAttribute('data-occ')];
+      if (!d) return;
+      ev.preventDefault();
+      openOcc(d);
+    });
+    modal.addEventListener('click', function (ev) {
+      // Luk ved klik på en lukkeknap eller på baggrunden uden for modalen
+      if (ev.target.closest('[data-close]') || ev.target === modal) modal.close();
+    });
+  }
+
   // --- Eksport ---
   var wheel = document.getElementById('wheel');
   if (!wheel) return;

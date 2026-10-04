@@ -6,11 +6,36 @@ require __DIR__ . '/../src/layout.php';
 $year = selected_year();
 $personId = (int)($_GET['person'] ?? 0) ?: null;
 $categoryId = (int)($_GET['category'] ?? 0) ?: null;
-$occ = Events::occurrencesForYear($year, $personId, $categoryId);
+$all = Events::all();
+$occ = Events::occurrencesForYear($year, $personId, $categoryId, $all);
+$occ = array_map(fn(array $o) => $o + ['dependents' => Events::dependents($o['event'], $o['date'], $all)], $occ);
 $people = Events::people();
 $categories = Categories::all();
 $label = year_label($year);
 $crossesYear = Settings::startMonth() !== 1;
+// Detaljer til modalen, der åbnes ved klik på en begivenhed i hjulet (nøglet som $occ, se data-occ i Wheel)
+$details = array_map(fn(array $o) => [
+    'title'       => $o['event']['title'],
+    'category'    => $o['event']['category_name'],
+    'color'       => $o['event']['color'],
+    'period'      => $o['end'] === $o['date'] ? date_da($o['date'], true)
+        : date_da($o['date'], substr($o['date'], 0, 4) !== substr($o['end'], 0, 4)) . ' – ' . date_da($o['end'], true),
+    'recurrence'  => Recurrence::describe($o['event']),
+    'description' => trim((string)$o['event']['description']),
+    'people'      => array_column($o['event']['people'], 'name'),
+    'dependents'  => array_map(fn($d) => [
+        'title' => $d['event']['title'],
+        'date'  => $d['date'] ? date_da($d['date'], true) : null,
+    ], $o['dependents']),
+    'prereqs'     => array_map(fn($p) => [
+        'title' => $p['event']['title'],
+        'date'  => $p['date'] ? date_da($p['date'], true) : null,
+        'done'  => $p['done'],
+    ], $o['prereqs']),
+    'done'        => $o['done'],
+    'blocked'     => $o['blocked'],
+    'edit'        => 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year,
+], $occ);
 $q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId, 'category' => $categoryId] + $p));
 
 page_header("Årshjul $label");
@@ -118,9 +143,39 @@ page_header("Årshjul $label");
               <?= $p['date'] ? '(' . h(date_da($p['date'], true)) . ')' : '(ingen forekomst)' ?>
             </div>
           <?php endforeach; ?>
+          <?php foreach ($o['dependents'] as $d): ?>
+            <div class="prereq">
+              → Forudsætning for <a href="event.php?id=<?= (int)$d['event']['id'] ?>&amp;year=<?= $year ?>"><?= h($d['event']['title']) ?></a>
+              <?= $d['date'] ? '(' . h(date_da($d['date'], true)) . ')' : '(ingen forekomst)' ?>
+            </div>
+          <?php endforeach; ?>
         </div>
       </article>
     <?php endforeach; ?>
   </section>
 </div>
+
+<script type="application/json" id="occ-data"><?= json_encode($details, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
+<dialog class="modal" id="occ-modal" aria-labelledby="occ-modal-title">
+ <div class="modal-body">
+  <div class="modal-head">
+    <h2 id="occ-modal-title" data-f="title"></h2>
+    <button type="button" class="modal-close" data-close aria-label="Luk">×</button>
+  </div>
+  <p class="modal-status" data-f="status" hidden></p>
+  <dl class="modal-facts">
+    <dt>Kategori</dt><dd><span class="modal-cat" data-f="category"></span></dd>
+    <dt>Periode</dt><dd data-f="period"></dd>
+    <dt>Gentagelse</dt><dd data-f="recurrence"></dd>
+    <dt data-row="people">Personer</dt><dd data-row="people"><div class="chips" data-f="people"></div></dd>
+    <dt data-row="prereqs">Afhænger af</dt><dd data-row="prereqs" data-f="prereqs"></dd>
+    <dt data-row="dependents">Forudsætning for</dt><dd data-row="dependents" data-f="dependents"></dd>
+  </dl>
+  <div class="modal-desc" data-f="description"></div>
+  <div class="actions">
+    <a class="btn primary" data-f="edit" href="#">Redigér begivenhed</a>
+    <button type="button" class="btn" data-close>Luk</button>
+  </div>
+ </div>
+</dialog>
 <?php page_footer();

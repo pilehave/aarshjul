@@ -56,10 +56,10 @@ final class Wheel
         // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring. Korte begivenheder tegnes mindst $minSpan dage brede.
         $minSpan = 3;
         $series = [];
-        foreach ($occurrences as $occ) {
+        foreach ($occurrences as $k => $occ) {
             $s = $day(max($occ['date'], $from));
             $e = $day(min($occ['end'], $to)) + 1;
-            $series[$occ['event']['id']][] = [$occ, $s, max($e, $s + $minSpan)];
+            $series[$occ['event']['id']][] = [$occ, $s, max($e, $s + $minSpan), $k];
         }
         $lanes = [];   // lane => liste af [start, slut]
         $placed = [];
@@ -79,14 +79,14 @@ final class Wheel
                     break;
                 }
             }
-            foreach ($items as [$occ, $s, $e]) {
+            foreach ($items as [$occ, $s, $e, $k]) {
                 $lanes[$lane][] = [$s, $e];
-                $placed[] = [$occ, $s, $e, $lane];
+                $placed[] = [$occ, $s, $e, $lane, $k];
             }
         }
         $laneW = min(44, (self::R_LANES_OUT - self::R_LANES_IN) / max(1, count($lanes)));
 
-        foreach ($placed as $i => [$occ, $s, $e, $lane]) {
+        foreach ($placed as $i => [$occ, $s, $e, $lane, $k]) {
             $ev = $occ['event'];
             $rOut = self::R_LANES_OUT - $lane * $laneW - 2;
             $rIn = $rOut - $laneW + 4;
@@ -105,7 +105,8 @@ final class Wheel
             $g .= self::label($a1, $a2, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);
             $g .= '</g>';
             if ($links) {
-                $g = sprintf('<a href="event.php?id=%d&amp;year=%d">%s</a>', $ev['id'], $year, $g);
+                // data-occ er forekomstens nøgle i $occurrences; forsiden åbner en modal med detaljerne ud fra den
+                $g = sprintf('<a href="event.php?id=%d&amp;year=%d" data-occ="%s">%s</a>', $ev['id'], $year, h((string)$k), $g);
             }
             $o[] = $g;
         }

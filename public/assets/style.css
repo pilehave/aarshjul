@@ -81,6 +81,28 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .occ-meta { font-size: 13px; color: var(--muted); }
 .chips { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { font-size: 12px; background: #eef2f9; border-radius: 10px; padding: 1px 8px; }
+.modal { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 10px;
+  color: var(--ink); background: var(--card); box-shadow: 0 12px 40px rgba(20, 30, 50, .25); }
+.modal::backdrop { background: rgba(20, 30, 50, .45); }
+.modal-body { padding: 18px 20px 20px; }
+.modal-head { display: flex; align-items: flex-start; gap: 12px; }
+.modal-head h2 { flex: 1; margin: 0; font-size: 20px; overflow-wrap: anywhere; }
+.modal-close { border: 0; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 2px; }
+.modal-close:hover { color: var(--ink); }
+.modal-status { margin: 6px 0 0; font-size: 14px; }
+.modal-status.ok { color: var(--ok); }
+.modal-status.wait { color: var(--warn); }
+.modal-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 14px 0 0; }
+.modal-facts dt { color: var(--muted); font-size: 14px; }
+.modal-facts dd { margin: 0; }
+.modal-facts [hidden] { display: none; }
+.modal-facts .chips, .modal-facts .prereq:first-child { margin-top: 0; }
+.modal-facts .prereq { overflow-wrap: anywhere; }
+.modal-cat::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--c);
+  margin-right: 7px; vertical-align: -1px; }
+.modal-desc { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
+.modal-desc[hidden] { display: none; }
+.modal .actions { margin-top: 18px; }
 .prereq { font-size: 13px; margin-top: 3px; }
 .prereq.ok { color: var(--ok); }
 .prereq.wait { color: var(--warn); }

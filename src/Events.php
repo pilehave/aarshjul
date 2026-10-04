@@ -82,6 +82,31 @@ final class Events
         return $res;
     }
 
+    /**
+     * Begivenheder, der afhænger af $event, med datoen for den første af deres forekomster, som venter
+     * på netop forekomsten $date (dvs. hvor $date er den seneste forekomst af $event; se prerequisites).
+     * Datoen er null, hvis ingen af deres forekomster det næste år venter på den.
+     */
+    public static function dependents(array $event, string $date, array $all): array
+    {
+        $res = [];
+        $to = (new DateTimeImmutable($date))->modify('+1 year')->format('Y-m-d');
+        $dayAfter = (new DateTimeImmutable($date))->modify('+1 day')->format('Y-m-d');
+        foreach ($all as $e) {
+            if (!in_array((int)$event['id'], $e['depends_on'], true)) {
+                continue;
+            }
+            $next = array_values(array_filter(Recurrence::occurrences($e, $date, $to), fn($d) => $d >= $date));
+            $depDate = $next[0] ?? null;
+            // Kommer der en nyere forekomst af $event først, venter den afhængige forekomst på den i stedet
+            if ($depDate !== null && array_filter(Recurrence::occurrences($event, $dayAfter, $depDate), fn($d) => $d >= $dayAfter && $d <= $depDate)) {
+                $depDate = null;
+            }
+            $res[] = ['event' => $e, 'date' => $depDate];
+        }
+        return $res;
+    }
+
     /** Alle forekomster i årshjulet for $year (se year_bounds), sorteret efter dato, med status for flueben og afhængigheder. */
     public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null): array
     {
