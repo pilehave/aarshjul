@@ -95,7 +95,8 @@ final class Wheel
             $a2 = $ang($e);
             $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . date_da($occ['date']) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end']) : '')
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
-                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['overdue'] ? ' · overskredet' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '');
+                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['overdue'] ? ' · overskredet' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '')
+                . ($occ['note'] !== null ? ' · Note: ' . mb_strimwidth(preg_replace('/\s+/u', ' ', $occ['note']), 0, 80, '…') : '');
             $opacity = $occ['done'] ? '0.45' : '1';
             $g = sprintf('<g opacity="%s"><title>%s</title>', $opacity, h($tip));
             $g .= sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="1"/>', self::arc($a1, $a2, $rIn, $rOut), h($ev['color']));
@@ -106,8 +107,19 @@ final class Wheel
                 // Rød kant lidt inden for buen, så den ikke flyder ind i naboerne. Attributter i stedet for CSS, så den også kommer med i PNG/PDF
                 $g .= sprintf('<path d="%s" fill="none" stroke="%s" stroke-width="3" stroke-linejoin="round"/>', self::arc($a1, $a2, $rIn + 1.5, $rOut - 1.5), self::OVERDUE);
             }
+            // Lille mærke i buens hjørne, når forekomsten har en note, et link eller en fil. Teksten holdes fri af mærket
+            $mark = '';
+            $labelEnd = $a2;
+            if ($occ['note'] !== null || $occ['links'] || $occ['files']) {
+                $r = max(2.5, min(5, $laneW * 0.16));
+                $da = rad2deg(($r + 4) / $rOut);
+                [$cx, $cy] = self::pt($a2 - $da, $rOut - $r - 4);
+                $mark = sprintf('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="#ffffff" stroke="#1f2d48" stroke-width="1.5"/>', $cx, $cy, $r);
+                $labelEnd = max($a1, $a2 - 2 * $da);
+            }
             $fontSize = min(13, max(8, $laneW * 0.4));
-            $g .= self::label($a1, $a2, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);
+            $g .= self::label($a1, $labelEnd, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);
+            $g .= $mark;
             $g .= '</g>';
             if ($links) {
                 // data-occ er forekomstens nøgle i $occurrences; forsiden åbner en modal med detaljerne ud fra den

@@ -57,6 +57,78 @@ final class Events
         }
     }
 
+    private const NO_OCCURRENCE_DATA = ['note' => null, 'links' => [], 'files' => []];
+
+    /** Note, links og filer, der kun gælder én forekomst. @return array<string,array{note:?string,links:array,files:array}> nøgle "eventId|Y-m-d" */
+    public static function occurrenceData(): array
+    {
+        $pdo = db();
+        $data = [];
+        try {
+            foreach ($pdo->query('SELECT event_id, occurrence_date, note FROM occurrence_notes') as $r) {
+                $data[$r['event_id'] . '|' . $r['occurrence_date']]['note'] = $r['note'];
+            }
+            foreach (['links' => 'occurrence_links', 'files' => 'occurrence_files'] as $field => $table) {
+                foreach ($pdo->query("SELECT * FROM $table ORDER BY id") as $r) {
+                    $data[$r['event_id'] . '|' . $r['occurrence_date']][$field][] = $r;
+                }
+            }
+        } catch (PDOException) {
+            return []; // Tabellerne findes ikke endnu (migrationen er ikke kørt)
+        }
+        return array_map(fn($d) => $d + self::NO_OCCURRENCE_DATA, $data);
+    }
+
+    /**
+     * Gemmer note, links og filer for én forekomst. En tom note slettes. Returnerer fejl[].
+     * Forekomsten skal være valideret af kalderen (se action.php).
+     */
+    public static function saveOccurrence(int $eventId, string $date, array $in, array $uploads): array
+    {
+        $errors = [];
+        $note = trim((string)($in['note'] ?? ''));
+        if (mb_strlen($note) > 5000) {
+            $errors[] = 'Noten må højst være 5.000 tegn.';
+        }
+        $links = self::parseLinks($in, $errors);
+        $newFiles = self::parseUploads($uploads, $errors);
+        if ($errors) {
+            return $errors;
+        }
+
+        $pdo = db();
+        $pdo->beginTransaction();
+        try {
+            if ($note === '') {
+                $pdo->prepare('DELETE FROM occurrence_notes WHERE event_id=? AND occurrence_date=?')->execute([$eventId, $date]);
+            } else {
+                $pdo->prepare('INSERT INTO occurrence_notes (event_id, occurrence_date, note) VALUES (?,?,?) ON DUPLICATE KEY UPDATE note = VALUES(note)')
+                    ->execute([$eventId, $date, $note]);
+            }
+
+            $pdo->prepare('DELETE FROM occurrence_links WHERE event_id=? AND occurrence_date=?')->execute([$eventId, $date]);
+            $ins = $pdo->prepare('INSERT INTO occurrence_links (event_id, occurrence_date, url, label) VALUES (?,?,?,?)');
+            foreach ($links as $l) {
+                $ins->execute([$eventId, $date, $l['url'], $l['label']]);
+            }
+
+            foreach (array_map('intval', (array)($in['delete_file'] ?? [])) as $fid) {
+                self::removeFiles('occurrence_files', 'id=? AND event_id=? AND occurrence_date=?', [$fid, $eventId, $date]);
+            }
+            $ins = $pdo->prepare('INSERT INTO occurrence_files (event_id, occurrence_date, original_name, stored_name, mime_type, size_bytes) VALUES (?,?,?,?,?,?)');
+            foreach ($newFiles as $f) {
+                [$stored, $mime] = self::storeUpload($f);
+                $ins->execute([$eventId, $date, $f['name'], $stored, $mime, $f['size']]);
+            }
+
+            $pdo->commit();
+        } catch (Throwable $t) {
+            $pdo->rollBack();
+            return ['Kunne ikke gemme: ' . $t->getMessage()];
+        }
+        return [];
+    }
+
     /**
      * Status for forudsætningerne til én forekomst: for hver begivenhed, der afhænges af,
      * findes dens seneste forekomst på eller før datoen (op til ét år tilbage).
@@ -110,11 +182,13 @@ final class Events
     /**
      * Alle forekomster i årshjulet for $year (se year_bounds), sorteret efter dato, med status for flueben og afhængigheder.
      * En forekomst er overskredet, når slutdatoen er passeret uden flueben. $onlyMissing udelader dem med flueben.
+     * Hver forekomst har også sin egen note, links og filer (se occurrenceData).
      */
     public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null, bool $onlyMissing = false): array
     {
         $all ??= self::all();
         $done = self::completions();
+        $extra = self::occurrenceData();
         $today = date('Y-m-d');
         $rows = [];
         [$from, $to] = year_bounds($year);
@@ -140,7 +214,7 @@ final class Events
                     'overdue' => !$isDone && $end < $today,
                     'prereqs' => $prereqs,
                     'blocked' => (bool)array_filter($prereqs, fn($p) => !$p['done']),
-                ];
+                ] + ($extra[$e['id'] . '|' . $date] ?? self::NO_OCCURRENCE_DATA);
             }
         }
         usort($rows, fn($a, $b) => [$a['date'], $a['event']['title']] <=> [$b['date'], $b['event']['title']]);
@@ -234,19 +308,7 @@ final class Events
         $personIds = array_values(array_unique(array_filter(array_map('intval', (array)($in['people'] ?? [])),
             fn($p) => isset($people[$p]))));
 
-        // Links
-        $links = [];
-        foreach ((array)($in['link_url'] ?? []) as $i => $url) {
-            $url = trim((string)$url);
-            if ($url === '') {
-                continue;
-            }
-            if (!preg_match('~^https?://~i', $url) || !filter_var($url, FILTER_VALIDATE_URL)) {
-                $errors[] = 'Ugyldigt link: ' . $url . ' (skal starte med http:// eller https://)';
-                continue;
-            }
-            $links[] = ['url' => $url, 'label' => trim((string)($in['link_label'][$i] ?? '')) ?: null];
-        }
+        $links = self::parseLinks($in, $errors);
 
         // Afhængigheder
         $all = self::all();
@@ -257,25 +319,7 @@ final class Events
         }
 
         // Filer: tjek før vi skriver noget
-        $maxBytes = (int)config('max_upload_mb') * 1024 * 1024;
-        $newFiles = [];
-        if (!empty($uploads['name']) && is_array($uploads['name'])) {
-            foreach ($uploads['name'] as $i => $name) {
-                $err = $uploads['error'][$i];
-                if ($err === UPLOAD_ERR_NO_FILE) {
-                    continue;
-                }
-                if ($err !== UPLOAD_ERR_OK) {
-                    $errors[] = "Upload af \"$name\" fejlede (kode $err).";
-                    continue;
-                }
-                if ($uploads['size'][$i] > $maxBytes) {
-                    $errors[] = "\"$name\" er større end " . config('max_upload_mb') . ' MB.';
-                    continue;
-                }
-                $newFiles[] = ['name' => basename($name), 'tmp' => $uploads['tmp_name'][$i], 'size' => (int)$uploads['size'][$i]];
-            }
-        }
+        $newFiles = self::parseUploads($uploads, $errors);
 
         if ($errors) {
             return [$id, $errors];
@@ -321,18 +365,10 @@ final class Events
             }
 
             // Gem nye filer
-            $dir = config('upload_dir');
-            if (!is_dir($dir)) {
-                mkdir($dir, 0775, true);
-            }
             $ins = $pdo->prepare('INSERT INTO event_files (event_id, original_name, stored_name, mime_type, size_bytes) VALUES (?,?,?,?,?)');
-            $finfo = new finfo(FILEINFO_MIME_TYPE);
             foreach ($newFiles as $f) {
-                $stored = bin2hex(random_bytes(16));
-                if (!move_uploaded_file($f['tmp'], "$dir/$stored")) {
-                    throw new RuntimeException('Kunne ikke gemme filen ' . $f['name']);
-                }
-                $ins->execute([$id, $f['name'], $stored, $finfo->file("$dir/$stored") ?: 'application/octet-stream', $f['size']]);
+                [$stored, $mime] = self::storeUpload($f);
+                $ins->execute([$id, $f['name'], $stored, $mime, $f['size']]);
             }
 
             $pdo->commit();
@@ -345,21 +381,86 @@ final class Events
 
     public static function deleteFile(int $eventId, int $fileId): void
     {
-        $st = db()->prepare('SELECT stored_name FROM event_files WHERE id=? AND event_id=?');
-        $st->execute([$fileId, $eventId]);
-        if ($stored = $st->fetchColumn()) {
+        self::removeFiles('event_files', 'id=? AND event_id=?', [$fileId, $eventId]);
+    }
+
+    /** Sletter begivenheden med alle dens filer, også dem på de enkelte forekomster. Resten fjernes af ON DELETE CASCADE. */
+    public static function delete(int $id): void
+    {
+        self::removeFiles('event_files', 'event_id=?', [$id]);
+        try {
+            self::removeFiles('occurrence_files', 'event_id=?', [$id]);
+        } catch (PDOException) {
+            // Tabellen findes ikke endnu (migrationen er ikke kørt)
+        }
+        db()->prepare('DELETE FROM events WHERE id=?')->execute([$id]);
+    }
+
+    /** Sletter filer fra $table (event_files eller occurrence_files), både rækkerne og filerne i upload-mappen. */
+    private static function removeFiles(string $table, string $where, array $params): void
+    {
+        $st = db()->prepare("SELECT id, stored_name FROM $table WHERE $where");
+        $st->execute($params);
+        foreach ($st->fetchAll(PDO::FETCH_KEY_PAIR) as $fileId => $stored) {
             @unlink(config('upload_dir') . '/' . $stored);
-            db()->prepare('DELETE FROM event_files WHERE id=?')->execute([$fileId]);
+            db()->prepare("DELETE FROM $table WHERE id=?")->execute([$fileId]);
         }
     }
 
-    public static function delete(int $id): void
+    /** Links fra formularens link_url[]/link_label[]. Fejl tilføjes $errors. @return list<array{url:string,label:?string}> */
+    private static function parseLinks(array $in, array &$errors): array
     {
-        $st = db()->prepare('SELECT stored_name FROM event_files WHERE event_id=?');
-        $st->execute([$id]);
-        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $stored) {
-            @unlink(config('upload_dir') . '/' . $stored);
+        $links = [];
+        foreach ((array)($in['link_url'] ?? []) as $i => $url) {
+            $url = trim((string)$url);
+            if ($url === '') {
+                continue;
+            }
+            if (!preg_match('~^https?://~i', $url) || !filter_var($url, FILTER_VALIDATE_URL)) {
+                $errors[] = 'Ugyldigt link: ' . $url . ' (skal starte med http:// eller https://)';
+                continue;
+            }
+            $links[] = ['url' => $url, 'label' => trim((string)($in['link_label'][$i] ?? '')) ?: null];
         }
-        db()->prepare('DELETE FROM events WHERE id=?')->execute([$id]);
+        return $links;
+    }
+
+    /** Uploadede filer fra $_FILES['files'], tjekket for fejl og størrelse. Fejl tilføjes $errors. */
+    private static function parseUploads(array $uploads, array &$errors): array
+    {
+        $maxBytes = (int)config('max_upload_mb') * 1024 * 1024;
+        $files = [];
+        if (!empty($uploads['name']) && is_array($uploads['name'])) {
+            foreach ($uploads['name'] as $i => $name) {
+                $err = $uploads['error'][$i];
+                if ($err === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+                if ($err !== UPLOAD_ERR_OK) {
+                    $errors[] = "Upload af \"$name\" fejlede (kode $err).";
+                    continue;
+                }
+                if ($uploads['size'][$i] > $maxBytes) {
+                    $errors[] = "\"$name\" er større end " . config('max_upload_mb') . ' MB.';
+                    continue;
+                }
+                $files[] = ['name' => basename($name), 'tmp' => $uploads['tmp_name'][$i], 'size' => (int)$uploads['size'][$i]];
+            }
+        }
+        return $files;
+    }
+
+    /** Flytter en uploadet fil til upload-mappen under et tilfældigt navn. @return array{0:string,1:string} [gemt navn, MIME-type] */
+    private static function storeUpload(array $f): array
+    {
+        $dir = config('upload_dir');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        $stored = bin2hex(random_bytes(16));
+        if (!move_uploaded_file($f['tmp'], "$dir/$stored")) {
+            throw new RuntimeException('Kunne ikke gemme filen ' . $f['name']);
+        }
+        return [$stored, (new finfo(FILEINFO_MIME_TYPE))->file("$dir/$stored") ?: 'application/octet-stream'];
     }
 }

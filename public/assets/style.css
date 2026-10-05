@@ -61,6 +61,7 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .lg.blocked { background: repeating-linear-gradient(45deg, var(--primary) 0 3px, #cfdcf6 3px 6px); }
 .lg.today { background: #d64545; width: 3px; }
 .lg.overdue { background: var(--primary); box-shadow: inset 0 0 0 2px #d64545; }
+.lg.note { width: 10px; border-radius: 50%; background: #fff; border: 1.5px solid var(--ink); }
 
 .list { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 16px 16px; }
 .month { font-size: 15px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--line);
@@ -85,6 +86,12 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
   color: #fff; background: #d64545; white-space: nowrap; }
 .occ-overdue { margin-left: 6px; vertical-align: 1px; }
 .modal-status[hidden] { display: none; }
+.occ-note { margin-top: 4px; padding: 3px 8px; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere;
+  background: #fff8e1; border-left: 3px solid #e0b400; border-radius: 0 4px 4px 0; }
+.occ-note::before { content: "Note: "; font-weight: 600; }
+.occ-attach { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 4px; font-size: 13px; }
+.occ-attach a { text-decoration: none; overflow-wrap: anywhere; }
+.occ-attach a:hover { text-decoration: underline; }
 .chips { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { font-size: 12px; background: #eef2f9; border-radius: 10px; padding: 1px 8px; }
 .modal { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 10px;
@@ -111,6 +118,12 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .modal-desc { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
 .modal-desc[hidden] { display: none; }
 .modal .actions { margin-top: 18px; }
+.modal { overflow: auto; }
+.modal-occ { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.modal-occ h3 { margin: 0 0 4px; font-size: 15px; }
+.modal-occ .field-label { margin-top: 10px; }
+.modal-occ ul.plain { margin: 2px 0; }
+.modal-occ > .btn.primary { margin-top: 4px; }
 .prereq { font-size: 13px; margin-top: 3px; }
 .prereq.ok { color: var(--ok); }
 .prereq.wait { color: var(--warn); }

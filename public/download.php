@@ -2,7 +2,9 @@
 declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 
-$st = db()->prepare('SELECT * FROM event_files WHERE id = ?');
+// ?id=N er en fil på en begivenhed, ?id=N&occ=1 en fil på en enkelt forekomst
+$table = empty($_GET['occ']) ? 'event_files' : 'occurrence_files';
+$st = db()->prepare("SELECT * FROM $table WHERE id = ?");
 $st->execute([(int)($_GET['id'] ?? 0)]);
 $f = $st->fetch();
 $path = $f ? config('upload_dir') . '/' . $f['stored_name'] : null;

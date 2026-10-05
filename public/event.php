@@ -188,7 +188,7 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
         </div>
       <?php endforeach; ?>
     </div>
-    <button type="button" class="btn small" id="add-link">+ Tilføj link</button>
+    <button type="button" class="btn small" data-add-link="links">+ Tilføj link</button>
     <?php if ($id && $all[$id]['links']): ?>
       <ul class="plain"><?php foreach ($all[$id]['links'] as $l): ?><li><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener"><?= h($l['label'] ?: $l['url']) ?></a></li><?php endforeach; ?></ul>
     <?php endif; ?>
@@ -215,7 +215,7 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
 </form>
 
 <?php if ($id): ?>
-  <form method="post" class="delete-form" onsubmit="return confirm('Slet begivenheden og alle dens filer, links og flueben?')">
+  <form method="post" class="delete-form" onsubmit="return confirm('Slet begivenheden og alle dens filer, links, noter og flueben?')">
     <?= csrf_field() ?>
     <input type="hidden" name="id" value="<?= $id ?>">
     <input type="hidden" name="do" value="delete">

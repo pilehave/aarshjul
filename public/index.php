@@ -37,6 +37,9 @@ $details = array_map(fn(array $o) => [
     ], $o['prereqs']),
     'done'        => $o['done'],
     'overdue'     => $o['overdue'],
+    'note'        => (string)$o['note'],
+    'links'       => array_map(fn($l) => ['url' => $l['url'], 'label' => (string)$l['label']], $o['links']),
+    'files'       => array_map(fn($f) => ['id' => (int)$f['id'], 'name' => $f['original_name'], 'kb' => (int)ceil($f['size_bytes'] / 1024)], $o['files']),
     'blocked'     => $o['blocked'],
     'edit'        => 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year,
 ], $occ);
@@ -107,6 +110,7 @@ page_header("Årshjul $label");
       <span class="lg done"></span> Opfyldt
       <span class="lg blocked"></span> Venter på forudsætning
       <span class="lg overdue"></span> Overskredet
+      <span class="lg note"></span> Note eller vedhæftning
       <span class="lg today"></span> I dag
     </p>
   </section>
@@ -142,6 +146,15 @@ page_header("Årshjul $label");
           <?php if (trim((string)$ev['description']) !== ''): ?>
             <div class="occ-desc"><?= h(trim($ev['description'])) ?></div>
             <button type="button" class="occ-more" hidden>Vis mere</button>
+          <?php endif; ?>
+          <?php if ($o['note'] !== null): ?>
+            <div class="occ-note"><?= h($o['note']) ?></div>
+          <?php endif; ?>
+          <?php if ($o['links'] || $o['files']): ?>
+            <div class="occ-attach">
+              <?php foreach ($o['links'] as $l): ?><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener">🔗 <?= h($l['label'] ?: $l['url']) ?></a><?php endforeach; ?>
+              <?php foreach ($o['files'] as $f): ?><a href="download.php?id=<?= (int)$f['id'] ?>&amp;occ=1">📎 <?= h($f['original_name']) ?></a><?php endforeach; ?>
+            </div>
           <?php endif; ?>
           <?php if ($ev['people']): ?>
             <div class="chips"><?php foreach ($ev['people'] as $p): ?><span class="chip"><?= h($p['name']) ?></span><?php endforeach; ?></div>
@@ -190,6 +203,29 @@ page_header("Årshjul $label");
     <dt data-row="dependents">Forudsætning for</dt><dd data-row="dependents" data-f="dependents"></dd>
   </dl>
   <div class="modal-desc" data-f="description"></div>
+  <form method="post" action="action.php" enctype="multipart/form-data" class="modal-occ" data-f="note-form">
+    <?= csrf_field() ?>
+    <input type="hidden" name="do" value="note">
+    <input type="hidden" name="id">
+    <input type="hidden" name="date">
+    <input type="hidden" name="back">
+    <h3>Kun denne forekomst</h3>
+    <label>Note<textarea name="note" rows="3" maxlength="5000" placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
+    <div class="field-label">Links</div>
+    <ul class="plain" data-f="link-list"></ul>
+    <div id="occ-links">
+      <div class="row link-row">
+        <label class="grow">URL<input type="url" name="link_url[]" placeholder="https://"></label>
+        <label class="grow">Tekst<input name="link_label[]"></label>
+        <button type="button" class="btn small" data-remove-row>✕</button>
+      </div>
+    </div>
+    <button type="button" class="btn small" data-add-link="occ-links">+ Tilføj link</button>
+    <div class="field-label modal-files-label">Filer</div>
+    <ul class="plain files" data-f="files"></ul>
+    <label>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
+    <button class="btn primary" type="submit">Gem note</button>
+  </form>
   <div class="actions">
     <a class="btn primary" data-f="edit" href="#">Redigér begivenhed</a>
     <button type="button" class="btn" data-close>Luk</button>

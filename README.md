@@ -75,6 +75,9 @@ På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke
 - **Personer** oprettes, omdøbes og slettes under knappen "Personer". På en begivenhed vælges en eller
   flere ved at skrive navnet; de vises i feltet som "navn ×," og fjernes med krydset.
 - **Flere links og filer** pr. begivenhed. Filer gemmes i `storage/uploads` med tilfældige navne.
+- **Note pr. forekomst**: i modalen kan man skrive en note og tilføje links og filer, der kun gælder denne gang
+  (fx "Mødet holdes på Teams" eller et referat). Noten vises i listen, i Excel-eksporten og som et lille mærke på
+  buen i hjulet. Næste forekomst af samme begivenhed starter uden note.
 - **Indstillinger** (tandhjulet ved "Personer"): vælg hvilken måned årshjulet starter med. Starter det
   fx i august, viser hjulet for 2026 perioden 1. august 2026 – 31. juli 2027 (vist som "2026/27").
 - **Eksport**: Excel (.xlsx, genereres uden biblioteker), PNG, PDF (hjul + liste, via jsPDF der
@@ -96,7 +99,7 @@ src/Events.php        Databaseadgang, validering, afhængigheder og flueben
 src/Wheel.php         Tegner hjulet som SVG
 src/Xlsx.php          Minimal .xlsx-skriver
 public/               Webrod: index.php (hjul + liste), event.php (formular), categories.php, people.php, settings.php,
-                      action.php (flueben),
+                      action.php (flueben og noter pr. forekomst),
                       download.php (filer), export_xlsx.php, wheel_svg.php, assets/
 storage/uploads/      Uploadede filer
 ```
@@ -104,7 +107,8 @@ storage/uploads/      Uploadede filer
 ## Datamodel i korte træk
 
 En række i `events` er en *serie*. Datoerne i et år udregnes ud fra reglen og gemmes ikke.
-Kun afkrydsninger gemmes (`event_completions`: begivenhed + dato). En forudsætning for en
+Kun afkrydsninger (`event_completions`) og noter, links og filer pr. forekomst (`occurrence_notes`,
+`occurrence_links`, `occurrence_files`) gemmes, alle med begivenhed + dato som nøgle. En forudsætning for en
 forekomst er den seneste forekomst af den anden begivenhed på eller før datoen (op til et år tilbage).
 
 "Sidste uge i måneden" er defineret som ugen, der starter med månedens sidste mandag.

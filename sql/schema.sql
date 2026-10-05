@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS aarshjul CHARACTER SET utf8mb4 COLLATE utf8mb4_dan
 USE aarshjul;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS settings, event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
+DROP TABLE IF EXISTS settings, occurrence_files, occurrence_links, occurrence_notes, event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Indstillinger for hele årshjulet som navn/værdi-par (fx start_month = 8 for august).
@@ -92,5 +92,39 @@ CREATE TABLE event_completions (
     occurrence_date  DATE NOT NULL,
     completed_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Note, links og filer, der kun gælder én forekomst. Nøglen er den samme som i event_completions,
+-- så næste forekomst af samme begivenhed starter uden note.
+CREATE TABLE occurrence_notes (
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    note             TEXT NOT NULL,
+    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE occurrence_links (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    url              VARCHAR(2000) NOT NULL,
+    label            VARCHAR(200) NULL,
+    KEY idx_occurrence_links (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE occurrence_files (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    original_name    VARCHAR(255) NOT NULL,
+    stored_name      VARCHAR(100) NOT NULL,   -- tilfældigt filnavn i storage/uploads
+    mime_type        VARCHAR(150) NOT NULL,
+    size_bytes       INT UNSIGNED NOT NULL,
+    uploaded_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_occurrence_files (event_id, occurrence_date),
     FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

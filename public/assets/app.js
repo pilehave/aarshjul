@@ -124,22 +124,21 @@
     });
   }
 
-  // --- Formular: tilføj/fjern linkrækker ---
-  var addLink = document.getElementById('add-link');
-  if (addLink) {
-    addLink.addEventListener('click', function () {
-      var rows = document.querySelectorAll('#links .link-row');
-      var row = rows[rows.length - 1].cloneNode(true);
-      row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
-      document.getElementById('links').appendChild(row);
-    });
-    document.getElementById('links').addEventListener('click', function (ev) {
-      if (!ev.target.matches('[data-remove-row]')) return;
-      var rows = document.querySelectorAll('#links .link-row');
-      var row = ev.target.closest('.link-row');
-      if (rows.length > 1) row.remove(); else row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
-    });
+  // --- Formular: tilføj/fjern linkrækker (begivenhed og forekomst i modalen). data-add-link er id'et på rækkernes beholder ---
+  function addLinkRow(box) {
+    var rows = box.querySelectorAll('.link-row');
+    var row = rows[rows.length - 1].cloneNode(true);
+    row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+    box.appendChild(row);
+    return row;
   }
+  document.addEventListener('click', function (ev) {
+    var add = ev.target.closest('[data-add-link]');
+    if (add) { addLinkRow(document.getElementById(add.getAttribute('data-add-link'))); return; }
+    if (!ev.target.matches('[data-remove-row]')) return;
+    var row = ev.target.closest('.link-row');
+    if (row.parentNode.querySelectorAll('.link-row').length > 1) row.remove(); else row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+  });
 
   // --- Forside: beskrivelser vises med 2 linjer; "Vis mere" kun når teksten faktisk er længere ---
   var descs = document.querySelectorAll('.occ-desc');
@@ -204,6 +203,43 @@
       box.parentNode.title = locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
       field('status').hidden = !locked;
       field('overdue').hidden = !d.overdue;
+
+      // Note, links og filer for kun denne forekomst
+      var nf = field('note-form');
+      nf.elements.id.value = d.id;
+      nf.elements.date.value = d.date;
+      nf.elements.back.value = check.elements.back.value;
+      nf.elements.note.value = d.note;
+      nf.elements['files[]'].value = '';
+      var linkList = field('link-list');
+      linkList.textContent = '';
+      d.links.forEach(function (l) {
+        var li = document.createElement('li'), a = document.createElement('a');
+        a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label || l.url;
+        li.appendChild(a); linkList.appendChild(li);
+      });
+      linkList.hidden = !d.links.length;
+      var linkBox = document.getElementById('occ-links');
+      var linkRows = linkBox.querySelectorAll('.link-row');
+      for (var i = 1; i < linkRows.length; i++) linkRows[i].remove();
+      linkRows[0].querySelectorAll('input').forEach(function (inp) { inp.value = ''; });
+      d.links.forEach(function (l, i) {
+        var row = i ? addLinkRow(linkBox) : linkRows[0];
+        row.querySelector('[name="link_url[]"]').value = l.url;
+        row.querySelector('[name="link_label[]"]').value = l.label;
+      });
+      var files = field('files');
+      files.textContent = '';
+      d.files.forEach(function (f) {
+        var li = document.createElement('li'), a = document.createElement('a'), size = document.createElement('small');
+        a.href = 'download.php?id=' + f.id + '&occ=1'; a.textContent = f.name;
+        size.textContent = ' (' + f.kb.toLocaleString('da-DK') + ' KB) ';
+        var del = document.createElement('label'), box = document.createElement('input');
+        del.className = 'inline'; box.type = 'checkbox'; box.name = 'delete_file[]'; box.value = f.id;
+        del.appendChild(box); del.appendChild(document.createTextNode(' slet'));
+        li.appendChild(a); li.appendChild(size); li.appendChild(del); files.appendChild(li);
+      });
+      files.hidden = !d.files.length;
 
       var people = field('people');
       people.textContent = '';
@@ -316,7 +352,8 @@
         people: Array.prototype.map.call(el.querySelectorAll('.chip'), function (c) { return c.textContent; }).join(', '),
         done: el.classList.contains('is-done'),
         blocked: el.classList.contains('is-blocked'),
-        overdue: el.classList.contains('is-overdue')
+        overdue: el.classList.contains('is-overdue'),
+        note: (el.querySelector('.occ-note') || { textContent: '' }).textContent.trim()
       });
     });
     return out;
@@ -341,6 +378,7 @@
       pdf.setTextColor(0);
       pdf.setFontSize(8); pdf.setTextColor(100);
       pdf.splitTextToSize(r.meta + (r.people ? ' · ' + r.people : ''), 175).forEach(function (line) { pdf.text(line, 24, y); y += 4; });
+      if (r.note) pdf.splitTextToSize('Note: ' + r.note, 175).forEach(function (line) { if (y > 287) { pdf.addPage(); y = 15; } pdf.text(line, 24, y); y += 4; });
       pdf.setTextColor(0); y += 1.5;
     });
     pdf.save('aarshjul-' + fileYear + '.pdf');

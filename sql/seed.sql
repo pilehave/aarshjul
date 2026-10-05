@@ -33,3 +33,9 @@ INSERT INTO event_dependencies (event_id, depends_on_id) VALUES
 
 INSERT INTO event_completions (event_id, occurrence_date) VALUES
  (6,'2026-03-31');
+
+INSERT INTO occurrence_notes (event_id, occurrence_date, note) VALUES
+ (4,'2026-11-03','Mødet holdes på Teams.');
+
+INSERT INTO occurrence_links (event_id, occurrence_date, url, label) VALUES
+ (4,'2026-11-03','https://teams.microsoft.com/','Teams-møde');
