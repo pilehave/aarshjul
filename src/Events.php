@@ -107,11 +107,15 @@ final class Events
         return $res;
     }
 
-    /** Alle forekomster i årshjulet for $year (se year_bounds), sorteret efter dato, med status for flueben og afhængigheder. */
-    public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null): array
+    /**
+     * Alle forekomster i årshjulet for $year (se year_bounds), sorteret efter dato, med status for flueben og afhængigheder.
+     * En forekomst er overskredet, når slutdatoen er passeret uden flueben. $onlyMissing udelader dem med flueben.
+     */
+    public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null, bool $onlyMissing = false): array
     {
         $all ??= self::all();
         $done = self::completions();
+        $today = date('Y-m-d');
         $rows = [];
         [$from, $to] = year_bounds($year);
         foreach ($all as $e) {
@@ -122,13 +126,18 @@ final class Events
                 continue;
             }
             foreach (Recurrence::occurrences($e, $from, $to) as $date) {
+                $isDone = isset($done[$e['id'] . '|' . $date]);
+                if ($onlyMissing && $isDone) {
+                    continue;
+                }
                 $prereqs = self::prerequisites($e, $date, $all, $done);
                 $end = (new DateTimeImmutable($date))->modify('+' . (max(1, (int)$e['duration_days']) - 1) . ' days')->format('Y-m-d');
                 $rows[] = [
                     'event'   => $e,
                     'date'    => $date,
                     'end'     => $end,
-                    'done'    => isset($done[$e['id'] . '|' . $date]),
+                    'done'    => $isDone,
+                    'overdue' => !$isDone && $end < $today,
                     'prereqs' => $prereqs,
                     'blocked' => (bool)array_filter($prereqs, fn($p) => !$p['done']),
                 ];

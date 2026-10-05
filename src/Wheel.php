@@ -14,6 +14,7 @@ final class Wheel
     private const R_WEEK_IN = 418;
     private const R_LANES_OUT = 410;
     private const R_LANES_IN = 150;
+    private const OVERDUE = '#d64545'; // samme røde som "i dag"-markøren
 
     public static function svg(int $year, array $occurrences, bool $links = true): string
     {
@@ -94,12 +95,16 @@ final class Wheel
             $a2 = $ang($e);
             $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . date_da($occ['date']) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end']) : '')
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
-                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '');
+                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['overdue'] ? ' · overskredet' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '');
             $opacity = $occ['done'] ? '0.45' : '1';
             $g = sprintf('<g opacity="%s"><title>%s</title>', $opacity, h($tip));
             $g .= sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="1"/>', self::arc($a1, $a2, $rIn, $rOut), h($ev['color']));
             if ($occ['blocked']) {
                 $g .= sprintf('<path d="%s" fill="url(#blocked)"/>', self::arc($a1, $a2, $rIn, $rOut));
+            }
+            if ($occ['overdue']) {
+                // Rød kant lidt inden for buen, så den ikke flyder ind i naboerne. Attributter i stedet for CSS, så den også kommer med i PNG/PDF
+                $g .= sprintf('<path d="%s" fill="none" stroke="%s" stroke-width="3" stroke-linejoin="round"/>', self::arc($a1, $a2, $rIn + 1.5, $rOut - 1.5), self::OVERDUE);
             }
             $fontSize = min(13, max(8, $laneW * 0.4));
             $g .= self::label($a1, $a2, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);

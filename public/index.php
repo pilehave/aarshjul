@@ -6,8 +6,9 @@ require __DIR__ . '/../src/layout.php';
 $year = selected_year();
 $personId = (int)($_GET['person'] ?? 0) ?: null;
 $categoryId = (int)($_GET['category'] ?? 0) ?: null;
+$onlyMissing = !empty($_GET['missing']);
 $all = Events::all();
-$occ = Events::occurrencesForYear($year, $personId, $categoryId, $all);
+$occ = Events::occurrencesForYear($year, $personId, $categoryId, $all, $onlyMissing);
 $occ = array_map(fn(array $o) => $o + ['dependents' => Events::dependents($o['event'], $o['date'], $all)], $occ);
 $people = Events::people();
 $categories = Categories::all();
@@ -35,10 +36,11 @@ $details = array_map(fn(array $o) => [
         'done'  => $p['done'],
     ], $o['prereqs']),
     'done'        => $o['done'],
+    'overdue'     => $o['overdue'],
     'blocked'     => $o['blocked'],
     'edit'        => 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year,
 ], $occ);
-$q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId, 'category' => $categoryId] + $p));
+$q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null] + $p));
 
 page_header("Årshjul $label");
 ?>
@@ -76,6 +78,9 @@ page_header("Årshjul $label");
         <?php endforeach; ?>
       </select>
     </label>
+    <label title="Vis kun forekomster uden flueben, herunder de overskredne">
+      <input type="checkbox" name="missing" value="1" <?= $onlyMissing ? 'checked' : '' ?> onchange="this.form.submit()"> Kun ikke-opfyldte
+    </label>
   </form>
   <button class="btn" type="button" id="toggle-list" aria-controls="event-list" aria-expanded="true">Skjul begivenheder</button>
   <div class="spacer"></div>
@@ -101,6 +106,7 @@ page_header("Årshjul $label");
     <p class="legend">
       <span class="lg done"></span> Opfyldt
       <span class="lg blocked"></span> Venter på forudsætning
+      <span class="lg overdue"></span> Overskredet
       <span class="lg today"></span> I dag
     </p>
   </section>
@@ -115,7 +121,7 @@ page_header("Årshjul $label");
       if ($m !== $curMonth): $curMonth = $m; ?>
         <h2 class="month"><?= ucfirst(MONTHS_DA[(int)substr($m, 5)]) ?><?= $crossesYear ? ' ' . substr($m, 0, 4) : '' ?></h2>
       <?php endif; ?>
-      <article class="occ <?= $o['done'] ? 'is-done' : '' ?> <?= $o['blocked'] ? 'is-blocked' : '' ?>" style="--c: <?= h($ev['color']) ?>">
+      <article class="occ <?= $o['done'] ? 'is-done' : '' ?> <?= $o['blocked'] ? 'is-blocked' : '' ?> <?= $o['overdue'] ? 'is-overdue' : '' ?>" style="--c: <?= h($ev['color']) ?>">
         <form method="post" action="action.php" class="check">
           <?= csrf_field() ?>
           <input type="hidden" name="do" value="toggle">
@@ -128,6 +134,7 @@ page_header("Årshjul $label");
         <div class="occ-body">
           <a class="occ-title" href="event.php?id=<?= (int)$ev['id'] ?>&amp;year=<?= $year ?>"><?= h($ev['title']) ?></a>
           <span class="occ-cat"><?= h($ev['category_name']) ?></span>
+          <?php if ($o['overdue']): ?><span class="occ-overdue">Overskredet</span><?php endif; ?>
           <div class="occ-meta">
             <?= h(date_da($o['date'])) ?><?= $o['end'] !== $o['date'] ? ' – ' . h(date_da($o['end'], substr($o['end'], 0, 4) !== substr($o['date'], 0, 4))) : '' ?>
             · <?= h(Recurrence::describe($ev)) ?>
@@ -172,6 +179,7 @@ page_header("Årshjul $label");
     <input type="hidden" name="back">
     <label><input type="checkbox" name="done" value="1"> Opfyldt</label>
     <span class="modal-status wait" data-f="status" hidden>⏳ Venter på forudsætning</span>
+    <span class="modal-status overdue" data-f="overdue" hidden>Overskredet</span>
   </form>
   <dl class="modal-facts">
     <dt>Kategori</dt><dd><span class="modal-cat" data-f="category"></span></dd>

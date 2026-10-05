@@ -203,6 +203,7 @@
       box.disabled = locked;
       box.parentNode.title = locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
       field('status').hidden = !locked;
+      field('overdue').hidden = !d.overdue;
 
       var people = field('people');
       people.textContent = '';
@@ -314,7 +315,8 @@
         meta: el.querySelector('.occ-meta').textContent.replace(/\s+/g, ' ').trim(),
         people: Array.prototype.map.call(el.querySelectorAll('.chip'), function (c) { return c.textContent; }).join(', '),
         done: el.classList.contains('is-done'),
-        blocked: el.classList.contains('is-blocked')
+        blocked: el.classList.contains('is-blocked'),
+        overdue: el.classList.contains('is-overdue')
       });
     });
     return out;
@@ -334,7 +336,9 @@
       if (y > 280) { pdf.addPage(); y = 15; }
       if (r.month) { y += 3; pdf.setFontSize(12); pdf.setFont(undefined, 'bold'); pdf.text(r.month, 15, y); pdf.setFont(undefined, 'normal'); y += 6; return; }
       pdf.setFontSize(10);
-      pdf.text((r.done ? '[x] ' : '[  ] ') + r.title + ' (' + r.category + ')' + (r.blocked && !r.done ? '  (venter på forudsætning)' : ''), 18, y); y += 4.5;
+      if (r.overdue) pdf.setTextColor(214, 69, 69);
+      pdf.text((r.done ? '[x] ' : '[  ] ') + r.title + ' (' + r.category + ')' + (r.overdue ? '  (overskredet)' : '') + (r.blocked && !r.done ? '  (venter på forudsætning)' : ''), 18, y); y += 4.5;
+      pdf.setTextColor(0);
       pdf.setFontSize(8); pdf.setTextColor(100);
       pdf.splitTextToSize(r.meta + (r.people ? ' · ' + r.people : ''), 175).forEach(function (line) { pdf.text(line, 24, y); y += 4; });
       pdf.setTextColor(0); y += 1.5;
