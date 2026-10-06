@@ -110,7 +110,7 @@ page_header("Årshjul $label");
       <span class="lg done"></span> Opfyldt
       <span class="lg blocked"></span> Venter på forudsætning
       <span class="lg overdue"></span> Overskredet
-      <span class="lg note"></span> Note eller vedhæftning
+      <span class="lg note"></span> Note, link eller vedhæftning
       <span class="lg today"></span> I dag
     </p>
   </section>
