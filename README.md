@@ -59,6 +59,19 @@ eller en `config.local.php`, der returnerer et array.
 Kræver PHP-udvidelserne `pdo_mysql`, `zip` (Excel-eksport), `fileinfo` og `mbstring`.
 På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke er tilgængelige.
 
+## Tests
+
+`tests/` indeholder en lille testkører uden afhængigheder. Den tester datologikken (gentagelser,
+afhængigheder, forskudte år) og bruger ikke databasen.
+
+```powershell
+docker compose exec web php tests/run.php
+```
+
+Nye tests skrives i en fil `tests/<Navn>Test.php` med `test('beskrivelse', function () { ... })` og
+`assert_same()`/`assert_true()`. GitHub Actions (`.github/workflows/test.yml`) kører syntakstjek og tests
+ved hvert push og pull request.
+
 ## Funktioner
 
 - **Årshjul** for et valgt år (SVG), med månedsring, ugenumre, "i dag"-markør og filter på person.

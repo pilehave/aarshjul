@@ -1,0 +1,24 @@
+# Kører syntakstjek og tests ved hvert push og pull request.
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, zip, pdo_mysql
+          coverage: none
+
+      - name: Syntakstjek
+        run: find src public tests config.php -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Tests
+        run: php tests/run.php
