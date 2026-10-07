@@ -124,6 +124,18 @@ function date_da(string $ymd, bool $withYear = false): string
 }
 
 /**
+ * En periode med årstal: "30. oktober 2026", "30. oktober – 2. november 2026" eller
+ * "28. december 2026 – 3. januar 2027". Startdatoen får kun årstal, hvis året skifter undervejs.
+ */
+function period_da(string $from, string $to): string
+{
+    if ($from === $to) {
+        return date_da($from, true);
+    }
+    return date_da($from, substr($from, 0, 4) !== substr($to, 0, 4)) . ' – ' . date_da($to, true);
+}
+
+/**
  * Årshjulet for $year starter den 1. i startmåneden (se Settings) og varer 12 måneder.
  * Med startmåned august er 2026 altså perioden 1. august 2026 – 31. juli 2027.
  */

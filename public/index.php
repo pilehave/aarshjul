@@ -32,8 +32,7 @@ $details = array_map(fn(array $o) => [
     'title'       => $o['event']['title'],
     'category'    => $o['event']['category_name'],
     'color'       => $o['event']['color'],
-    'period'      => $o['end'] === $o['date'] ? date_da($o['date'], true)
-        : date_da($o['date'], substr($o['date'], 0, 4) !== substr($o['end'], 0, 4)) . ' – ' . date_da($o['end'], true),
+    'period'      => period_da($o['date'], $o['end']),
     'recurrence'  => Recurrence::describe($o['event']),
     'description' => trim((string)$o['event']['description']),
     'people'      => array_column($o['event']['people'], 'name'),
@@ -166,7 +165,7 @@ page_header("Årshjul $label");
           <span class="occ-cat"><?= h($ev['category_name']) ?></span>
           <?php if ($o['overdue']): ?><span class="occ-overdue">Overskredet</span><?php endif; ?>
           <div class="occ-meta">
-            <?= h(date_da($o['date'])) ?><?= $o['end'] !== $o['date'] ? ' – ' . h(date_da($o['end'], substr($o['end'], 0, 4) !== substr($o['date'], 0, 4))) : '' ?>
+            <?= h(period_da($o['date'], $o['end'])) ?>
             · <?= h(Recurrence::describe($ev)) ?>
           </div>
           <?php if ($o['completed']): ?>

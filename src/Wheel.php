@@ -139,7 +139,7 @@ final class Wheel
             $rIn = $rOut - $laneW + 4;
             $a1 = $ang($s);
             $a2 = $ang($e);
-            $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . date_da($occ['date'], true) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end'], true) : '')
+            $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . period_da($occ['date'], $occ['end'])
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
                 . ($occ['done'] ? ' · ✓ Opfyldt' : '') . ($occ['overdue'] ? ' · Overskredet' : '') . ($occ['blocked'] ? ' · Venter på forudsætning' : '')
                 . ($occ['note'] !== null ? ' · Note: ' . mb_strimwidth(preg_replace('/\s+/u', ' ', $occ['note']), 0, 80, '…') : '');

@@ -107,3 +107,11 @@ test('Forskudt år, når årshjulet starter i august', function () {
     assert_same('2026/27', year_label(2026));
     assert_same('2099/00', year_label(2099));
 });
+
+// --- period_da ---
+
+test('Periode med årstal kun efter slutdatoen, når året er det samme', function () {
+    assert_same('30. oktober 2026', period_da('2026-10-30', '2026-10-30'));
+    assert_same('30. oktober – 2. november 2026', period_da('2026-10-30', '2026-11-02'));
+    assert_same('28. december 2026 – 3. januar 2027', period_da('2026-12-28', '2027-01-03'));
+});
