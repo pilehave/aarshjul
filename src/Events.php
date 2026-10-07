@@ -65,10 +65,10 @@ final class Events
         return 'Opfyldt ' . self::dateText($c['at']) . ($c['by'] !== null ? ' af ' . $c['by'] : '');
     }
 
-    /** "Note af Anne Holm, 3. oktober", eller null, hvis der ikke er nogen note. */
+    /** "Note af Anne Holm, 3. oktober 2026" (altid med årstal), eller null, hvis der ikke er nogen note. */
     public static function noteText(?int $at, ?string $by): ?string
     {
-        return $at === null ? null : 'Note' . ($by !== null ? ' af ' . $by : '') . ', ' . self::dateText($at);
+        return $at === null ? null : 'Note' . ($by !== null ? ' af ' . $by : '') . ', ' . date_da(date('Y-m-d', $at), true);
     }
 
     /** "Uploadet af Anne Holm, 3. oktober" for en fil fra occurrenceData(). */
