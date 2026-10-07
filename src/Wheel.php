@@ -54,7 +54,8 @@ final class Wheel
         $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern></defs>';
         $o[] = sprintf('<rect width="%1$d" height="%1$d" fill="#ffffff"/>', self::SIZE);
 
-        // Månedsring
+        // Månedsring. Går hjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 27"
+        $withYear = Settings::startMonth() !== 1;
         for ($i = 0; $i < 12; $i++) {
             $first = $start->modify("+$i months");
             $m = (int)$first->format('n');
@@ -63,7 +64,7 @@ final class Wheel
             $fill = $i % 2 ? '#dce4f2' : '#e9eef7';
             $o[] = sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="2"/>', self::arc($a1, $a2, self::R_MONTH_IN, self::R_MONTH_OUT), $fill);
             $o[] = sprintf('<path d="%s" fill="#fafbfd" stroke="#e3e7ee" stroke-width="1"/>', self::arc($a1, $a2, self::R_LANES_IN, self::R_LANES_OUT));
-            $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]), 20, '#1f2d48', 'bold', 'm' . $m);
+            $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]) . ($withYear ? ' ' . $first->format('y') : ''), 20, '#1f2d48', 'bold', 'm' . $m);
         }
 
         // Ugenumre: en streg ved hver mandag og nummeret midt i den del af ugen, der ligger i hjulet.

@@ -67,3 +67,26 @@ test('Lange forekomster skæres af ved hjulets kanter', function () {
     assert_same([351, 366], Wheel::span('2028-07-17', '2028-08-10', '2027-08-01', '2028-07-31'));
     assert_same([0, 14], Wheel::span('2027-07-19', '2027-08-14', '2027-08-01', '2028-07-31'));
 });
+
+// --- Wheel::svg: månedsnavne ---
+
+/** Månedsnavnene i hjulet i den rækkefølge, de tegnes */
+function wheel_months(int $year): array
+{
+    preg_match_all('~<textPath href="#p-m\d+"[^>]*>([^<]*)</textPath>~', Wheel::svg($year, [], false), $m);
+    return $m[1];
+}
+
+test('Månedsnavne uden årstal, når hjulet starter i januar', function () {
+    $months = wheel_months(2027);
+    assert_same(['Januar', 'December'], [$months[0], $months[11]]);
+});
+
+test('Månedsnavne med årstal, når hjulet går på tværs af to år', function () {
+    set_start_month(8);
+    assert_same(['August 27', 'September 27', 'Oktober 27', 'November 27', 'December 27', 'Januar 28', 'Februar 28',
+        'Marts 28', 'April 28', 'Maj 28', 'Juni 28', 'Juli 28'], wheel_months(2027));
+    set_start_month(10);
+    $months = wheel_months(2099);
+    assert_same(['Oktober 99', 'September 00'], [$months[0], $months[11]], 'Årtusindskiftet');
+});
