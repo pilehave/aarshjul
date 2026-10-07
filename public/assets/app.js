@@ -204,6 +204,8 @@
       box.parentNode.title = !canEdit ? '' : locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
       field('status').hidden = !locked;
       field('overdue').hidden = !d.overdue;
+      field('completed').textContent = d.completed || '';
+      field('completed').hidden = !d.completed;
 
       // Note, links og filer for kun denne forekomst
       var nf = field('note-form');
@@ -211,12 +213,15 @@
       nf.elements.date.value = d.date;
       nf.elements.back.value = check.elements.back.value;
       nf.elements.note.value = d.note;
+      field('note-by').textContent = d.note_by || '';
+      field('note-by').hidden = !d.note_by;
       nf.elements['files[]'].value = '';
       var linkList = field('link-list');
       linkList.textContent = '';
       d.links.forEach(function (l) {
         var li = document.createElement('li'), a = document.createElement('a');
         a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label || l.url;
+        if (l.by) a.title = 'Tilføjet af ' + l.by;
         li.appendChild(a); linkList.appendChild(li);
       });
       linkList.hidden = !d.links.length;
@@ -234,12 +239,12 @@
       d.files.forEach(function (f) {
         var li = document.createElement('li'), a = document.createElement('a'), size = document.createElement('small');
         a.href = 'download.php?id=' + f.id + '&occ=1'; a.textContent = f.name;
-        size.textContent = ' (' + f.kb.toLocaleString('da-DK') + ' KB) ';
+        size.textContent = ' (' + f.kb.toLocaleString('da-DK') + ' KB, ' + f.by.charAt(0).toLowerCase() + f.by.slice(1) + ') ';
         var del = document.createElement('label'), box = document.createElement('input');
         del.className = 'inline'; box.type = 'checkbox'; box.name = 'delete_file[]'; box.value = f.id;
         del.appendChild(box); del.appendChild(document.createTextNode(' slet'));
         li.appendChild(a); li.appendChild(size);
-        if (canEdit) li.appendChild(del);
+        if (f.delete) li.appendChild(del); // bidragydere kan kun slette deres egne filer
         files.appendChild(li);
       });
       files.hidden = !d.files.length;

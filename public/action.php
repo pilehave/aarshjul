@@ -24,10 +24,10 @@ if ($do === 'toggle' || $do === 'note') {
                 redirect($back);
             }
         }
-        Events::setCompleted($id, $date, $done);
+        Events::setCompleted($id, $date, $done, (int)Auth::user()['id']);
     } else {
         // Note, links og filer, der kun gælder denne forekomst
-        $errors = Events::saveOccurrence($id, $date, $_POST, $_FILES['files'] ?? []);
+        $errors = Events::saveOccurrence($id, $date, $_POST, $_FILES['files'] ?? [], (int)Auth::user()['id'], Auth::can('admin'));
         flash($errors ? implode(' ', $errors) : 'Noten er gemt.', $errors ? 'error' : 'ok');
     }
 }

@@ -92,6 +92,7 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .occ-note { margin-top: 4px; padding: 3px 8px; font-size: 14px; white-space: pre-line; overflow-wrap: anywhere;
   background: #fff8e1; border-left: 3px solid #e0b400; border-radius: 0 4px 4px 0; }
 .occ-note::before { content: "Note: "; font-weight: 600; }
+.occ-by { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .occ-attach { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 4px; font-size: 13px; }
 .occ-attach a { text-decoration: none; overflow-wrap: anywhere; }
 .occ-attach a:hover { text-decoration: underline; }

@@ -38,38 +38,78 @@ final class Events
         return db()->query('SELECT id, name FROM people ORDER BY name')->fetchAll();
     }
 
-    /** @return array<string,bool> nøgle "eventId|Y-m-d" */
+    /**
+     * Visningsnavn for en bruger: personens navn, hvis brugeren er koblet til en person, ellers brugerens eget.
+     * Bruges som "... LEFT JOIN users u ON ..." . self::JOIN_PERSON sammen med self::USER_NAME . " AS by_name".
+     */
+    private const JOIN_PERSON = ' LEFT JOIN people up ON up.id = u.person_id';
+    private const USER_NAME = 'COALESCE(up.name, u.name)';
+
+    /**
+     * Afkrydsede forekomster med tidspunkt (Unix-tid) og navnet på den, der satte fluebenet (null før login fandtes).
+     * @return array<string,array{at:int,by:?string}> nøgle "eventId|Y-m-d"
+     */
     public static function completions(): array
     {
         $set = [];
-        foreach (db()->query('SELECT event_id, occurrence_date FROM event_completions') as $r) {
-            $set[$r['event_id'] . '|' . $r['occurrence_date']] = true;
+        foreach (db()->query('SELECT c.event_id, c.occurrence_date, UNIX_TIMESTAMP(c.completed_at) AS at, ' . self::USER_NAME . ' AS by_name
+            FROM event_completions c LEFT JOIN users u ON u.id = c.completed_by' . self::JOIN_PERSON) as $r) {
+            $set[$r['event_id'] . '|' . $r['occurrence_date']] = ['at' => (int)$r['at'], 'by' => $r['by_name']];
         }
         return $set;
     }
 
-    public static function setCompleted(int $eventId, string $date, bool $done): void
+    /** "Opfyldt 3. oktober af Anne Holm" ud fra en række fra completions(). */
+    public static function completedText(array $c): string
+    {
+        return 'Opfyldt ' . self::dateText($c['at']) . ($c['by'] !== null ? ' af ' . $c['by'] : '');
+    }
+
+    /** "Note af Anne Holm, 3. oktober", eller null, hvis der ikke er nogen note. */
+    public static function noteText(?int $at, ?string $by): ?string
+    {
+        return $at === null ? null : 'Note' . ($by !== null ? ' af ' . $by : '') . ', ' . self::dateText($at);
+    }
+
+    /** "Uploadet af Anne Holm, 3. oktober" for en fil fra occurrenceData(). */
+    public static function uploadedText(array $f): string
+    {
+        return 'Uploadet' . ($f['by_name'] !== null ? ' af ' . $f['by_name'] : '') . ', ' . self::dateText((int)$f['uploaded_ts']);
+    }
+
+    /** Datoen for et Unix-tidspunkt i dansk tid, med år, hvis det ikke er i år. */
+    private static function dateText(int $ts): string
+    {
+        return date_da(date('Y-m-d', $ts), date('Y', $ts) !== date('Y'));
+    }
+
+    public static function setCompleted(int $eventId, string $date, bool $done, ?int $userId = null): void
     {
         if ($done) {
-            db()->prepare('INSERT IGNORE INTO event_completions (event_id, occurrence_date) VALUES (?, ?)')->execute([$eventId, $date]);
+            db()->prepare('INSERT IGNORE INTO event_completions (event_id, occurrence_date, completed_by) VALUES (?, ?, ?)')->execute([$eventId, $date, $userId]);
         } else {
             db()->prepare('DELETE FROM event_completions WHERE event_id = ? AND occurrence_date = ?')->execute([$eventId, $date]);
         }
     }
 
-    private const NO_OCCURRENCE_DATA = ['note' => null, 'links' => [], 'files' => []];
+    private const NO_OCCURRENCE_DATA = ['note' => null, 'note_at' => null, 'note_by' => null, 'links' => [], 'files' => []];
 
-    /** Note, links og filer, der kun gælder én forekomst. @return array<string,array{note:?string,links:array,files:array}> nøgle "eventId|Y-m-d" */
+    /**
+     * Note, links og filer, der kun gælder én forekomst, med hvem der skrev noten og tilføjede links og filer (by_name).
+     * @return array<string,array{note:?string,note_at:?int,note_by:?string,links:array,files:array}> nøgle "eventId|Y-m-d"
+     */
     public static function occurrenceData(): array
     {
         $pdo = db();
         $data = [];
         try {
-            foreach ($pdo->query('SELECT event_id, occurrence_date, note FROM occurrence_notes') as $r) {
-                $data[$r['event_id'] . '|' . $r['occurrence_date']]['note'] = $r['note'];
+            foreach ($pdo->query('SELECT n.event_id, n.occurrence_date, n.note, UNIX_TIMESTAMP(n.updated_at) AS at, ' . self::USER_NAME . ' AS by_name
+                FROM occurrence_notes n LEFT JOIN users u ON u.id = n.updated_by' . self::JOIN_PERSON) as $r) {
+                $data[$r['event_id'] . '|' . $r['occurrence_date']] = ['note' => $r['note'], 'note_at' => (int)$r['at'], 'note_by' => $r['by_name']];
             }
-            foreach (['links' => 'occurrence_links', 'files' => 'occurrence_files'] as $field => $table) {
-                foreach ($pdo->query("SELECT * FROM $table ORDER BY id") as $r) {
+            foreach (['links' => ['occurrence_links', 'created_by', ''], 'files' => ['occurrence_files', 'uploaded_by', 'UNIX_TIMESTAMP(t.uploaded_at) AS uploaded_ts, ']] as $field => [$table, $byCol, $extra]) {
+                foreach ($pdo->query("SELECT t.*, $extra" . self::USER_NAME . " AS by_name
+                    FROM $table t LEFT JOIN users u ON u.id = t.$byCol" . self::JOIN_PERSON . ' ORDER BY t.id') as $r) {
                     $data[$r['event_id'] . '|' . $r['occurrence_date']][$field][] = $r;
                 }
             }
@@ -81,9 +121,10 @@ final class Events
 
     /**
      * Gemmer note, links og filer for én forekomst. En tom note slettes. Returnerer fejl[].
-     * Forekomsten skal være valideret af kalderen (se action.php).
+     * $userId gemmes som forfatter til en ændret note, nye links og nye filer. Uændrede links beholder deres forfatter.
+     * Kun administratorer ($isAdmin) kan slette andres filer. Forekomsten skal være valideret af kalderen (se action.php).
      */
-    public static function saveOccurrence(int $eventId, string $date, array $in, array $uploads): array
+    public static function saveOccurrence(int $eventId, string $date, array $in, array $uploads, int $userId, bool $isAdmin): array
     {
         $errors = [];
         $note = trim((string)($in['note'] ?? ''));
@@ -102,23 +143,34 @@ final class Events
             if ($note === '') {
                 $pdo->prepare('DELETE FROM occurrence_notes WHERE event_id=? AND occurrence_date=?')->execute([$eventId, $date]);
             } else {
-                $pdo->prepare('INSERT INTO occurrence_notes (event_id, occurrence_date, note) VALUES (?,?,?) ON DUPLICATE KEY UPDATE note = VALUES(note)')
-                    ->execute([$eventId, $date, $note]);
+                // updated_by sættes før note, så sammenligningen sker med den gamle tekst. Er teksten uændret,
+                // ændres intet, og updated_at og updated_by bliver stående
+                $pdo->prepare('INSERT INTO occurrence_notes (event_id, occurrence_date, note, updated_by) VALUES (?,?,?,?)
+                    ON DUPLICATE KEY UPDATE updated_by = IF(note <=> VALUES(note), updated_by, VALUES(updated_by)), note = VALUES(note)')
+                    ->execute([$eventId, $date, $note, $userId]);
             }
 
-            $pdo->prepare('DELETE FROM occurrence_links WHERE event_id=? AND occurrence_date=?')->execute([$eventId, $date]);
-            $ins = $pdo->prepare('INSERT INTO occurrence_links (event_id, occurrence_date, url, label) VALUES (?,?,?,?)');
-            foreach ($links as $l) {
-                $ins->execute([$eventId, $date, $l['url'], $l['label']]);
+            $st = $pdo->prepare('SELECT id, url, label FROM occurrence_links WHERE event_id=? AND occurrence_date=? ORDER BY id');
+            $st->execute([$eventId, $date]);
+            [$removeIds, $addLinks] = self::diffLinks($st->fetchAll(), $links);
+            $del = $pdo->prepare('DELETE FROM occurrence_links WHERE id=?');
+            foreach ($removeIds as $lid) {
+                $del->execute([$lid]);
+            }
+            $ins = $pdo->prepare('INSERT INTO occurrence_links (event_id, occurrence_date, url, label, created_by) VALUES (?,?,?,?,?)');
+            foreach ($addLinks as $l) {
+                $ins->execute([$eventId, $date, $l['url'], $l['label'], $userId]);
             }
 
+            // En bidragyder kan kun slette sine egne filer; andre id'er ignoreres
             foreach (array_map('intval', (array)($in['delete_file'] ?? [])) as $fid) {
-                self::removeFiles('occurrence_files', 'id=? AND event_id=? AND occurrence_date=?', [$fid, $eventId, $date]);
+                self::removeFiles('occurrence_files', 'id=? AND event_id=? AND occurrence_date=?' . ($isAdmin ? '' : ' AND uploaded_by=?'),
+                    $isAdmin ? [$fid, $eventId, $date] : [$fid, $eventId, $date, $userId]);
             }
-            $ins = $pdo->prepare('INSERT INTO occurrence_files (event_id, occurrence_date, original_name, stored_name, mime_type, size_bytes) VALUES (?,?,?,?,?,?)');
+            $ins = $pdo->prepare('INSERT INTO occurrence_files (event_id, occurrence_date, original_name, stored_name, mime_type, size_bytes, uploaded_by) VALUES (?,?,?,?,?,?,?)');
             foreach ($newFiles as $f) {
                 [$stored, $mime] = self::storeUpload($f);
-                $ins->execute([$eventId, $date, $f['name'], $stored, $mime, $f['size']]);
+                $ins->execute([$eventId, $date, $f['name'], $stored, $mime, $f['size'], $userId]);
             }
 
             $pdo->commit();
@@ -200,7 +252,8 @@ final class Events
                 continue;
             }
             foreach (Recurrence::occurrences($e, $from, $to) as $date) {
-                $isDone = isset($done[$e['id'] . '|' . $date]);
+                $completed = $done[$e['id'] . '|' . $date] ?? null;
+                $isDone = $completed !== null;
                 if ($onlyMissing && $isDone) {
                     continue;
                 }
@@ -211,6 +264,7 @@ final class Events
                     'date'    => $date,
                     'end'     => $end,
                     'done'    => $isDone,
+                    'completed' => $completed, // ['at' => Unix-tid, 'by' => navn] eller null
                     'overdue' => !$isDone && $end < $today,
                     'prereqs' => $prereqs,
                     'blocked' => (bool)array_filter($prereqs, fn($p) => !$p['done']),
@@ -405,6 +459,28 @@ final class Events
             @unlink(config('upload_dir') . '/' . $stored);
             db()->prepare("DELETE FROM $table WHERE id=?")->execute([$fileId]);
         }
+    }
+
+    /**
+     * Sammenligner gemte links med de indsendte, så uændrede links (og deres forfatter) bliver stående.
+     * Et link er uændret, hvis både URL og tekst er ens. Ens links parres ét for ét.
+     * @param list<array{id:int|string,url:string,label:?string}> $existing
+     * @param list<array{url:string,label:?string}> $submitted
+     * @return array{0:list<int>,1:list<array{url:string,label:?string}>} [id'er, der skal slettes, links, der skal tilføjes]
+     */
+    public static function diffLinks(array $existing, array $submitted): array
+    {
+        $add = [];
+        foreach ($submitted as $l) {
+            foreach ($existing as $i => $e) {
+                if ($e['url'] === $l['url'] && ($e['label'] ?? null) === $l['label']) {
+                    unset($existing[$i]);
+                    continue 2;
+                }
+            }
+            $add[] = $l;
+        }
+        return [array_values(array_map(fn($e) => (int)$e['id'], $existing)), $add];
     }
 
     /** Links fra formularens link_url[]/link_label[]. Fejl tilføjes $errors. @return list<array{url:string,label:?string}> */

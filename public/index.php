@@ -17,6 +17,9 @@ $crossesYear = Settings::startMonth() !== 1;
 $isAdmin = Auth::can('admin');          // må redigere begivenheder, kategorier, personer, indstillinger og brugere
 $canEdit = Auth::can('contributor');    // må sætte flueben og skrive noter på forekomster
 $myPersonId = (int)Auth::user()['person_id'] ?: null;
+$myId = (int)Auth::user()['id'];
+// En bidragyder må kun slette sine egne filer på en forekomst (håndhæves i Events::saveOccurrence)
+$canDeleteFile = fn(array $f) => $isAdmin || ($canEdit && (int)$f['uploaded_by'] === $myId);
 /** Begivenhedens titel, som link til redigering for administratorer */
 function event_link(array $event, int $year, bool $isAdmin): string
 {
@@ -44,10 +47,13 @@ $details = array_map(fn(array $o) => [
         'done'  => $p['done'],
     ], $o['prereqs']),
     'done'        => $o['done'],
+    'completed'   => $o['completed'] ? Events::completedText($o['completed']) : null,
     'overdue'     => $o['overdue'],
     'note'        => (string)$o['note'],
-    'links'       => array_map(fn($l) => ['url' => $l['url'], 'label' => (string)$l['label']], $o['links']),
-    'files'       => array_map(fn($f) => ['id' => (int)$f['id'], 'name' => $f['original_name'], 'kb' => (int)ceil($f['size_bytes'] / 1024)], $o['files']),
+    'note_by'     => Events::noteText($o['note_at'], $o['note_by']),
+    'links'       => array_map(fn($l) => ['url' => $l['url'], 'label' => (string)$l['label'], 'by' => $l['by_name']], $o['links']),
+    'files'       => array_map(fn($f) => ['id' => (int)$f['id'], 'name' => $f['original_name'], 'kb' => (int)ceil($f['size_bytes'] / 1024),
+        'by' => Events::uploadedText($f), 'delete' => $canDeleteFile($f)], $o['files']),
     'blocked'     => $o['blocked'],
     'edit'        => $isAdmin ? 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year : null,
 ], $occ);
@@ -163,17 +169,21 @@ page_header("Årshjul $label");
             <?= h(date_da($o['date'])) ?><?= $o['end'] !== $o['date'] ? ' – ' . h(date_da($o['end'], substr($o['end'], 0, 4) !== substr($o['date'], 0, 4))) : '' ?>
             · <?= h(Recurrence::describe($ev)) ?>
           </div>
+          <?php if ($o['completed']): ?>
+            <div class="occ-by">✓ <?= h(Events::completedText($o['completed'])) ?></div>
+          <?php endif; ?>
           <?php if (trim((string)$ev['description']) !== ''): ?>
             <div class="occ-desc"><?= h(trim($ev['description'])) ?></div>
             <button type="button" class="occ-more" hidden>Vis mere</button>
           <?php endif; ?>
           <?php if ($o['note'] !== null): ?>
             <div class="occ-note"><?= h($o['note']) ?></div>
+            <div class="occ-by"><?= h(Events::noteText($o['note_at'], $o['note_by'])) ?></div>
           <?php endif; ?>
           <?php if ($o['links'] || $o['files']): ?>
             <div class="occ-attach">
-              <?php foreach ($o['links'] as $l): ?><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener">🔗 <?= h($l['label'] ?: $l['url']) ?></a><?php endforeach; ?>
-              <?php foreach ($o['files'] as $f): ?><a href="download.php?id=<?= (int)$f['id'] ?>&amp;occ=1">📎 <?= h($f['original_name']) ?></a><?php endforeach; ?>
+              <?php foreach ($o['links'] as $l): ?><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener"<?= $l['by_name'] !== null ? ' title="Tilføjet af ' . h($l['by_name']) . '"' : '' ?>>🔗 <?= h($l['label'] ?: $l['url']) ?></a><?php endforeach; ?>
+              <?php foreach ($o['files'] as $f): ?><a href="download.php?id=<?= (int)$f['id'] ?>&amp;occ=1" title="<?= h(Events::uploadedText($f)) ?>">📎 <?= h($f['original_name']) ?></a><?php endforeach; ?>
             </div>
           <?php endif; ?>
           <?php if ($ev['people']): ?>
@@ -213,6 +223,7 @@ page_header("Årshjul $label");
     <label><input type="checkbox" name="done" value="1"> Opfyldt</label>
     <span class="modal-status wait" data-f="status" hidden>⏳ Venter på forudsætning</span>
     <span class="modal-status overdue" data-f="overdue" hidden>Overskredet</span>
+    <span class="occ-by" data-f="completed" hidden></span>
   </form>
   <dl class="modal-facts">
     <dt>Kategori</dt><dd><span class="modal-cat" data-f="category"></span></dd>
@@ -231,6 +242,7 @@ page_header("Årshjul $label");
     <input type="hidden" name="back">
     <h3>Kun denne forekomst</h3>
     <label data-f="note-label">Note<textarea name="note" rows="3" maxlength="5000" <?= $canEdit ? '' : 'readonly' ?> placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
+    <div class="occ-by" data-f="note-by" hidden></div>
     <div class="field-label" data-f="links-label">Links</div>
     <ul class="plain" data-f="link-list"></ul>
     <div id="occ-links" <?= $canEdit ? '' : 'hidden' ?>>

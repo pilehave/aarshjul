@@ -86,49 +86,6 @@ CREATE TABLE event_dependencies (
     -- (event_id <> depends_on_id og ingen cirkler håndhæves i PHP)
 ) ENGINE=InnoDB;
 
--- Flueben: en konkret forekomst af en begivenhed er opfyldt/gennemført.
-CREATE TABLE event_completions (
-    event_id         INT UNSIGNED NOT NULL,
-    occurrence_date  DATE NOT NULL,
-    completed_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (event_id, occurrence_date),
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- Note, links og filer, der kun gælder én forekomst. Nøglen er den samme som i event_completions,
--- så næste forekomst af samme begivenhed starter uden note.
-CREATE TABLE occurrence_notes (
-    event_id         INT UNSIGNED NOT NULL,
-    occurrence_date  DATE NOT NULL,
-    note             TEXT NOT NULL,
-    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (event_id, occurrence_date),
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
-CREATE TABLE occurrence_links (
-    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id         INT UNSIGNED NOT NULL,
-    occurrence_date  DATE NOT NULL,
-    url              VARCHAR(2000) NOT NULL,
-    label            VARCHAR(200) NULL,
-    KEY idx_occurrence_links (event_id, occurrence_date),
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
-CREATE TABLE occurrence_files (
-    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    event_id         INT UNSIGNED NOT NULL,
-    occurrence_date  DATE NOT NULL,
-    original_name    VARCHAR(255) NOT NULL,
-    stored_name      VARCHAR(100) NOT NULL,   -- tilfældigt filnavn i storage/uploads
-    mime_type        VARCHAR(150) NOT NULL,
-    size_bytes       INT UNSIGNED NOT NULL,
-    uploaded_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    KEY idx_occurrence_files (event_id, occurrence_date),
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
 -- Brugere med login. Rollerne er ordnet: reader < contributor < admin (se src/Auth.php).
 -- person_id kobler evt. brugeren til en person, så "mine begivenheder" kan vises.
 CREATE TABLE users (
@@ -166,4 +123,55 @@ CREATE TABLE password_resets (
     expires_at  DATETIME NOT NULL,
     KEY idx_password_resets_user (user_id, created_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Flueben: en konkret forekomst af en begivenhed er opfyldt/gennemført.
+CREATE TABLE event_completions (
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    completed_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_by     INT UNSIGNED NULL,             -- users.id; NULL for flueben sat før login fandtes
+    PRIMARY KEY (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_completions_user FOREIGN KEY (completed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- Note, links og filer, der kun gælder én forekomst. Nøglen er den samme som i event_completions,
+-- så næste forekomst af samme begivenhed starter uden note.
+CREATE TABLE occurrence_notes (
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    note             TEXT NOT NULL,
+    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by       INT UNSIGNED NULL,             -- hvem der sidst ændrede teksten
+    PRIMARY KEY (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_occurrence_notes_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE occurrence_links (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    url              VARCHAR(2000) NOT NULL,
+    label            VARCHAR(200) NULL,
+    created_by       INT UNSIGNED NULL,
+    KEY idx_occurrence_links (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_occurrence_links_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE occurrence_files (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_id         INT UNSIGNED NOT NULL,
+    occurrence_date  DATE NOT NULL,
+    original_name    VARCHAR(255) NOT NULL,
+    stored_name      VARCHAR(100) NOT NULL,   -- tilfældigt filnavn i storage/uploads
+    mime_type        VARCHAR(150) NOT NULL,
+    size_bytes       INT UNSIGNED NOT NULL,
+    uploaded_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    uploaded_by      INT UNSIGNED NULL,             -- en bidragyder må kun slette sine egne filer
+    KEY idx_occurrence_files (event_id, occurrence_date),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_occurrence_files_user FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

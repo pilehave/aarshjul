@@ -84,6 +84,10 @@ sin adgangskode, kan man få et link på mail fra login-siden (gyldigt i 60 minu
 Linkene kan kun bruges én gang, og et nyt link gør det forrige ugyldigt. Under "Min konto" (klik på dit navn)
 kan man skifte sin adgangskode; man bliver så logget ud alle andre steder.
 
+Det gemmes, hvem der satte et flueben, skrev en note og tilføjede links og filer på en forekomst. Det vises i
+listen, modalen og Excel-eksporten, fx "Opfyldt 3. oktober af Anne Holm". En bidragyder kan kun slette sine
+egne filer på en forekomst.
+
 Scriptet kan også bruges, hvis man har låst sig selv ude. Køres det med en eksisterende mail, bliver
 brugeren aktiv administrator med en ny adgangskode. Adgangskoder skal være 12–256 tegn med mindst ét
 stort bogstav, ét lille bogstav og ét tal. Efter 5 forkerte forsøg på 15 minutter afvises login for den mail.
