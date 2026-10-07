@@ -16,6 +16,13 @@ function page_header(string $title): void
 <body>
 <header class="topbar">
   <a class="brand" href="index.php">◔ Årshjul</a>
+<?php if ($user = Auth::user()): ?>
+  <form method="post" action="logout.php" class="userbox">
+    <?= csrf_field() ?>
+    <span title="<?= h($user['email'] . ' · ' . Auth::ROLES[$user['role']]) ?>"><?= h($user['name']) ?></span>
+    <button class="btn small" type="submit">Log ud</button>
+  </form>
+<?php endif; ?>
 </header>
 <main>
 <?php if ($flash): ?>

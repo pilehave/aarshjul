@@ -3,6 +3,13 @@ declare(strict_types=1);
 
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('Europe/Copenhagen');
+
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Lax',
+    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+]);
 session_start();
 
 $GLOBALS['config'] = require __DIR__ . '/../config.php';
@@ -14,6 +21,7 @@ require __DIR__ . '/People.php';
 require __DIR__ . '/Events.php';
 require __DIR__ . '/Wheel.php';
 require __DIR__ . '/Mailer.php';
+require __DIR__ . '/Auth.php';
 
 function config(string $key)
 {
@@ -67,6 +75,31 @@ function redirect(string $url): never
     exit;
 }
 
+/** $path, hvis det er en lokal sti som "/index.php?year=2026", ellers $default (mod åbne redirects). */
+function local_path(string $path, string $default = 'index.php'): string
+{
+    return preg_match('~^/(?![/\\\\])[^\\\\\s]*$~', $path) ? $path : $default;
+}
+
+/** Sender ikke-indloggede brugere til login (og tilbage hertil bagefter). */
+function require_login(): void
+{
+    if (!Auth::user()) {
+        $next = $_SERVER['REQUEST_METHOD'] === 'GET' ? (string)($_SERVER['REQUEST_URI'] ?? '') : '';
+        redirect('login.php' . ($next !== '' && $next !== '/' ? '?next=' . rawurlencode($next) : ''));
+    }
+}
+
+/** Kræver mindst rollen $role (se Auth::ROLES). */
+function require_role(string $role): void
+{
+    require_login();
+    if (!Auth::can($role)) {
+        http_response_code(403);
+        exit('Du har ikke adgang til dette. Det kræver rollen ' . Auth::ROLES[$role] . '.');
+    }
+}
+
 function flash(?string $msg = null, string $type = 'ok'): ?array
 {
     if ($msg !== null) {
@@ -110,4 +143,10 @@ function year_bounds(int $year): array
 function year_label(int $year): string
 {
     return Settings::startMonth() === 1 ? (string)$year : sprintf('%d/%02d', $year, ($year + 1) % 100);
+}
+
+// Alle sider kræver login, undtagen dem, der selv definerer PUBLIC_PAGE (login, nulstilling, ...).
+// En ny side er dermed lukket, indtil man bevidst åbner den.
+if (PHP_SAPI !== 'cli' && !defined('PUBLIC_PAGE')) {
+    require_login();
 }

@@ -3,10 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 
 require_post_csrf();
-$back = (string)($_POST['back'] ?? 'index.php');
-if (!str_starts_with($back, '/') || str_starts_with($back, '//')) {
-    $back = 'index.php';
-}
+$back = local_path((string)($_POST['back'] ?? ''));
 
 $do = (string)($_POST['do'] ?? '');
 if ($do === 'toggle' || $do === 'note') {

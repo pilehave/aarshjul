@@ -60,6 +60,19 @@ eller en `config.local.php`, der returnerer et array.
 Kræver PHP-udvidelserne `pdo_mysql`, `zip` (Excel-eksport), `fileinfo` og `mbstring`.
 På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke er tilgængelige.
 
+## Login
+
+Alle sider kræver login. Den første administrator oprettes fra kommandolinjen (scriptet spørger om
+mail, navn og adgangskode):
+
+```powershell
+docker compose exec web php bin/create-admin.php
+```
+
+Scriptet kan også bruges, hvis man har låst sig selv ude. Køres det med en eksisterende mail, bliver
+brugeren aktiv administrator med en ny adgangskode. Adgangskoder skal være 12–256 tegn med mindst ét
+stort bogstav, ét lille bogstav og ét tal. Efter 5 forkerte forsøg på 15 minutter afvises login for den mail.
+
 ## Mail
 
 Mails sendes med `src/Mailer.php`, en lille SMTP-klient uden afhængigheder. Under udvikling sendes alt
