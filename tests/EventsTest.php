@@ -87,8 +87,8 @@ test('Tekster om hvem og hvornår', function () {
     $ts = (new DateTimeImmutable(date('Y') . '-10-03 14:00'))->getTimestamp();
     assert_same('Opfyldt 3. oktober af Anne Holm', Events::completedText(['at' => $ts, 'by' => 'Anne Holm']));
     assert_same('Opfyldt 3. oktober', Events::completedText(['at' => $ts, 'by' => null]), 'Flueben fra før login');
-    assert_same('Note af Anne Holm, 3. oktober ' . date('Y'), Events::noteText($ts, 'Anne Holm'), 'Noten har altid årstal');
-    assert_same('Note, 3. oktober ' . date('Y'), Events::noteText($ts, null));
+    assert_same('Note af Anne Holm, 3. oktober', Events::noteText($ts, 'Anne Holm'));
+    assert_same('Note, 3. oktober', Events::noteText($ts, null));
     assert_same(null, Events::noteText(null, null));
     assert_same('Uploadet af Bo, 3. oktober', Events::uploadedText(['uploaded_ts' => (string)$ts, 'by_name' => 'Bo']));
     $old = (new DateTimeImmutable('2020-10-03 14:00'))->getTimestamp();
