@@ -220,7 +220,7 @@ page_header("Årshjul $label");
     <input type="hidden" name="id">
     <input type="hidden" name="date">
     <input type="hidden" name="back">
-    <label><input type="checkbox" name="done" value="1"> Opfyldt</label>
+    <label><input type="checkbox" name="done" value="1" <?= $canEdit ? '' : 'disabled' ?>> Opfyldt</label>
     <span class="modal-status wait" data-f="status" hidden>⏳ Venter på forudsætning</span>
     <span class="modal-status overdue" data-f="overdue" hidden>Overskredet</span>
     <span class="occ-by" data-f="completed" hidden></span>
@@ -241,7 +241,7 @@ page_header("Årshjul $label");
     <input type="hidden" name="date">
     <input type="hidden" name="back">
     <h3>Kun denne forekomst</h3>
-    <label data-f="note-label">Note<textarea name="note" rows="3" maxlength="5000" <?= $canEdit ? '' : 'readonly' ?> placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
+    <label data-f="note-label">Note<textarea name="note" rows="3" maxlength="5000" <?= $canEdit ? '' : 'disabled' ?> placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
     <div class="occ-by" data-f="note-by" hidden></div>
     <div class="field-label" data-f="links-label">Links</div>
     <ul class="plain" data-f="link-list"></ul>

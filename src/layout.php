@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+/** Adressen på en fil i public/assets med ændringstidspunktet, så browseren henter en ny version efter ændringer */
+function asset(string $file): string
+{
+    return 'assets/' . $file . '?v=' . @filemtime(__DIR__ . '/../public/assets/' . $file);
+}
+
 function page_header(string $title): void
 {
     $flash = flash();
@@ -11,7 +17,7 @@ function page_header(string $title): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($title) ?> · Årshjul</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%23e30613%27/%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="<?= asset('style.css') ?>">
 </head>
 <body>
 <header class="topbar">
@@ -43,7 +49,7 @@ function password_fields(): void
 function page_footer(): void
 {
     ?></main>
-<script src="assets/app.js"></script>
+<script src="<?= asset('app.js') ?>"></script>
 </body>
 </html>
 <?php
