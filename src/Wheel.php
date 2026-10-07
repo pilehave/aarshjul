@@ -16,6 +16,29 @@ final class Wheel
     private const R_LANES_IN = 150;
     private const OVERDUE = '#d64545'; // samme røde som "i dag"-markøren
 
+    /** Korte forekomster tegnes mindst så mange dage brede, så de kan ses og klikkes på */
+    private const MIN_SPAN = 3;
+
+    /**
+     * Hvor i hjulet [$from, $to] en forekomst fra $date til $end tegnes: [første dag, dag efter sidste], talt i dage fra $from.
+     * Forekomsten skæres af ved hjulets kanter. Korte forekomster gøres MIN_SPAN dage brede, dog aldrig ud over kanterne.
+     * En forekomst, der er begyndt i hjulet før, tegnes kun med de dage, der ligger i dette hjul (fx 1 dag).
+     * @return array{0:int,1:int}
+     */
+    public static function span(string $date, string $end, string $from, string $to): array
+    {
+        $start = new DateTimeImmutable($from);
+        $day = fn(string $ymd) => (int)$start->diff(new DateTimeImmutable($ymd))->format('%r%a');
+        $daysInYear = $day($to) + 1;
+        $s = $day(max($date, $from));
+        $e = $day(min($end, $to)) + 1;
+        if ($date >= $from && $e - $s < self::MIN_SPAN) {
+            $e = min($daysInYear, $s + self::MIN_SPAN);
+            $s = max(0, $e - self::MIN_SPAN);
+        }
+        return [$s, $e];
+    }
+
     public static function svg(int $year, array $occurrences, bool $links = true): string
     {
         [$from, $to] = year_bounds($year);
@@ -43,24 +66,46 @@ final class Wheel
             $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]), 20, '#1f2d48', 'bold', 'm' . $m);
         }
 
-        // Ugenumre (mandage)
-        $d = $start->modify('+' . ((8 - (int)$start->format('N')) % 7) . ' days');
-        for (; $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
-            $a = $ang($day($d->format('Y-m-d')));
-            [$x1, $y1] = self::pt($a, self::R_WEEK_IN);
-            [$x2, $y2] = self::pt($a, self::R_MONTH_IN);
-            $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c4ccda" stroke-width="1"/>', $x1, $y1, $x2, $y2);
-            [$tx, $ty] = self::pt($a + 3.5 / $daysInYear * 360, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
-            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central">%d</text>', $tx, $ty, (int)$d->format('W'));
+        // Ugenumre: en streg ved hver mandag og nummeret midt i den del af ugen, der ligger i hjulet.
+        // Starter hjulet midt i en uge, får den delvise første uge også sit nummer (fx uge 31, når 1/8 er en lørdag)
+        $weeks = []; // [nummer, første dag, dag efter sidste] (dage siden $from, afskåret til hjulet)
+        for ($d = $start->modify('-' . ((int)$start->format('N') - 1) . ' days'); $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
+            $monday = $day($d->format('Y-m-d'));
+            if ($monday >= 0) {
+                [$x1, $y1] = self::pt($ang($monday), self::R_WEEK_IN);
+                [$x2, $y2] = self::pt($ang($monday), self::R_MONTH_IN);
+                $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c4ccda" stroke-width="1"/>', $x1, $y1, $x2, $y2);
+            }
+            $weeks[] = [(int)$d->format('W'), max(0, $monday), min($daysInYear, $monday + 7)];
+        }
+        // Har ugerne i hver ende samme nummer (fx uge 31 i både 2028 og 2029, når hjulet starter 1/8 2028),
+        // mødes de øverst og ligner én uge. Nummeret vises så kun én gang: midt over sammenstødet, hvis begge
+        // er delvise, ellers ved den hele uge (fx uge 1 i 2024, hvor 30.-31/12 også er uge 1)
+        [$first, $last] = [$weeks[0], $weeks[count($weeks) - 1]];
+        $len = fn(array $w) => $w[2] - $w[1];
+        if (count($weeks) > 1 && $first[0] === $last[0]) {
+            if ($len($first) < 7 && $len($last) < 7) {
+                array_pop($weeks);
+                $weeks[0][1] = $last[1] - $daysInYear; // negativ: dagene før toppen
+            } elseif ($len($first) < $len($last)) {
+                array_shift($weeks);
+            } else {
+                array_pop($weeks);
+            }
+        }
+        foreach ($weeks as [$num, $s, $e]) {
+            if ($e - $s < 2) {
+                continue; // en enkelt dag er for smal til et nummer
+            }
+            [$tx, $ty] = self::pt($ang(($s + $e) / 2), (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
+            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central">%d</text>', $tx, $ty, $num);
         }
 
-        // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring. Korte begivenheder tegnes mindst $minSpan dage brede.
-        $minSpan = 3;
+        // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring
         $series = [];
         foreach ($occurrences as $k => $occ) {
-            $s = $day(max($occ['date'], $from));
-            $e = $day(min($occ['end'], $to)) + 1;
-            $series[$occ['event']['id']][] = [$occ, $s, max($e, $s + $minSpan), $k];
+            [$s, $e] = self::span($occ['date'], $occ['end'], $from, $to);
+            $series[$occ['event']['id']][] = [$occ, $s, $e, $k];
         }
         $lanes = [];   // lane => liste af [start, slut]
         $placed = [];
