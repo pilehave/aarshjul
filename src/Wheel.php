@@ -141,7 +141,7 @@ final class Wheel
             $a2 = $ang($e);
             $tip = $ev['title'] . ' · ' . $ev['category_name'] . ' · ' . date_da($occ['date'], true) . ($occ['end'] !== $occ['date'] ? ' – ' . date_da($occ['end'], true) : '')
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
-                . ($occ['done'] ? ' · ✓ opfyldt' : '') . ($occ['overdue'] ? ' · overskredet' : '') . ($occ['blocked'] ? ' · venter på forudsætning' : '')
+                . ($occ['done'] ? ' · ✓ Opfyldt' : '') . ($occ['overdue'] ? ' · Overskredet' : '') . ($occ['blocked'] ? ' · Venter på forudsætning' : '')
                 . ($occ['note'] !== null ? ' · Note: ' . mb_strimwidth(preg_replace('/\s+/u', ' ', $occ['note']), 0, 80, '…') : '');
             $opacity = $occ['done'] ? '0.45' : '1';
             $g = sprintf('<g opacity="%s"><title>%s</title>', $opacity, h($tip));
