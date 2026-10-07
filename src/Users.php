@@ -18,7 +18,8 @@ final class Users
     /**
      * Gemmer brugersiden: name[id], email[id], role[id], person[id] og active[id] for eksisterende brugere,
      * new_* for en ny. Brugere slettes ikke, men deaktiveres, så deres navn kan blive stående ved flueben og noter.
-     * $selfId er den indloggede administrator, som ikke kan fjerne sin egen adgang. Returnerer fejl[].
+     * $selfId er den indloggede administrator, som ikke kan fjerne sin egen adgang.
+     * @return array{0:?int,1:string[]} [id på den nye bruger eller null, fejl[]]
      */
     public static function saveAll(array $in, int $selfId): array
     {
@@ -47,10 +48,11 @@ final class Users
 
         $errors = self::validate($rows, $selfId, array_map('intval', array_keys(People::all())));
         if ($errors) {
-            return $errors;
+            return [null, $errors];
         }
 
         $pdo = db();
+        $newId = null;
         $pdo->beginTransaction();
         try {
             // Mail og person er unikke. Frigør dem først, så to brugere kan bytte
@@ -70,13 +72,14 @@ final class Users
                 $r = $rows['new'];
                 $pdo->prepare('INSERT INTO users (name, email, role, person_id) VALUES (?,?,?,?)')
                     ->execute([$r['name'], $r['email'], $r['role'], $r['person']]);
+                $newId = (int)$pdo->lastInsertId();
             }
             $pdo->commit();
         } catch (Throwable $t) {
             $pdo->rollBack();
-            return ['Kunne ikke gemme: ' . $t->getMessage()];
+            return [null, ['Kunne ikke gemme: ' . $t->getMessage()]];
         }
-        return [];
+        return [$newId, []];
     }
 
     /**

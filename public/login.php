@@ -42,6 +42,7 @@ page_header('Log ind');
     <label>Adgangskode<input type="password" name="password" required autocomplete="current-password" maxlength="256"></label>
     <div class="actions">
       <button class="btn primary" type="submit">Log ind</button>
+      <a class="btn" href="forgot.php">Glemt adgangskode?</a>
     </div>
   </fieldset>
 

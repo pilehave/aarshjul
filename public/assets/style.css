@@ -8,6 +8,7 @@ a { color: var(--primary); }
 .topbar { background: #e30613; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
 .brand { color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; }
 .userbox { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
+.userbox a { color: #fff; }
 .login-form { max-width: 380px; margin: 40px auto 0; }
 main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 40px; }
 h1 { font-size: 24px; margin: 8px 0 16px; }

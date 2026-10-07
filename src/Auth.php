@@ -114,6 +114,36 @@ final class Auth
         return $errors;
     }
 
+    /**
+     * Sætter en ny adgangskode og sletter brugerens engangslinks. Andre sessioner logges ud,
+     * fordi fingeraftrykket ændres. Er det den indloggede bruger selv, forbliver denne session logget ind.
+     */
+    public static function setPassword(int $userId, string $password): void
+    {
+        $hash = self::hash($password);
+        db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $userId]);
+        PasswordReset::forget($userId);
+        if (self::$user && (int)self::$user['id'] === $userId) {
+            self::$user['password_hash'] = $hash;
+            session_regenerate_id(true);
+            $_SESSION['auth'] = self::fingerprint(self::$user);
+        }
+    }
+
+    /** Den indloggede bruger skifter sin egen adgangskode. Returnerer fejl[]. */
+    public static function changePassword(string $current, string $password, string $repeat): array
+    {
+        $u = self::user();
+        if (!$u || !password_verify($current, (string)$u['password_hash'])) {
+            return ['Den nuværende adgangskode er forkert.'];
+        }
+        $errors = self::validatePassword($password, $repeat);
+        if (!$errors) {
+            self::setPassword((int)$u['id'], $password);
+        }
+        return $errors;
+    }
+
     public static function hash(string $password): string
     {
         return password_hash($password, self::algorithm());

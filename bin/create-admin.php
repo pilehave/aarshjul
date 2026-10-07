@@ -74,6 +74,7 @@ while (true) {
 $hash = Auth::hash($repeat);
 if ($existing) {
     db()->prepare("UPDATE users SET password_hash = ?, role = 'admin', active = 1 WHERE id = ?")->execute([$hash, $existing['id']]);
+    PasswordReset::forget((int)$existing['id']);
     echo "Opdateret.\n";
 } else {
     db()->prepare("INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, ?, 'admin')")->execute([$email, $name, $hash]);

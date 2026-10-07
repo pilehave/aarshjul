@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS aarshjul CHARACTER SET utf8mb4 COLLATE utf8mb4_dan
 USE aarshjul;
 
 SET FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS login_attempts, users, settings, occurrence_files, occurrence_links, occurrence_notes, event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
+DROP TABLE IF EXISTS password_resets, login_attempts, users, settings, occurrence_files, occurrence_links, occurrence_notes, event_completions, event_dependencies, event_files, event_links, event_people, people, events, categories;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Indstillinger for hele årshjulet som navn/værdi-par (fx start_month = 8 for august).
@@ -154,4 +154,16 @@ CREATE TABLE login_attempts (
     attempted_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     KEY idx_login_attempts_email (email, attempted_at),
     KEY idx_login_attempts_ip (ip, attempted_at)
+) ENGINE=InnoDB;
+
+-- Engangslinks til at vælge adgangskode: "Glemt adgangskode" (reset) og invitation af nye brugere (invite).
+-- Kun sha256 af nøglen gemmes, så en kopi af databasen ikke kan bruges til at overtage brugere.
+CREATE TABLE password_resets (
+    token_hash  CHAR(64) NOT NULL PRIMARY KEY,
+    user_id     INT UNSIGNED NOT NULL,
+    purpose     ENUM('reset','invite') NOT NULL,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at  DATETIME NOT NULL,
+    KEY idx_password_resets_user (user_id, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

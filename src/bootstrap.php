@@ -23,6 +23,7 @@ require __DIR__ . '/Wheel.php';
 require __DIR__ . '/Mailer.php';
 require __DIR__ . '/Auth.php';
 require __DIR__ . '/Users.php';
+require __DIR__ . '/PasswordReset.php';
 
 function config(string $key)
 {

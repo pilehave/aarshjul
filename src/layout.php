@@ -19,7 +19,7 @@ function page_header(string $title): void
 <?php if ($user = Auth::user()): ?>
   <form method="post" action="logout.php" class="userbox">
     <?= csrf_field() ?>
-    <span title="<?= h($user['email'] . ' · ' . Auth::ROLES[$user['role']]) ?>"><?= h($user['name']) ?></span>
+    <a href="account.php" title="<?= h($user['email'] . ' · ' . Auth::ROLES[$user['role']]) ?>"><?= h($user['name']) ?></a>
     <button class="btn small" type="submit">Log ud</button>
   </form>
 <?php endif; ?>
@@ -28,6 +28,16 @@ function page_header(string $title): void
 <?php if ($flash): ?>
   <div class="flash flash-<?= h($flash['type']) ?>"><?= h($flash['msg']) ?></div>
 <?php endif;
+}
+
+/** Felterne til en ny adgangskode, der skal tastes to gange (se Auth::validatePassword). */
+function password_fields(): void
+{
+    ?>
+    <label>Ny adgangskode<input type="password" name="password" required minlength="12" maxlength="256" autocomplete="new-password"></label>
+    <label>Gentag ny adgangskode<input type="password" name="password2" required minlength="12" maxlength="256" autocomplete="new-password"></label>
+    <p class="muted">Mindst 12 tegn med mindst ét stort bogstav, ét lille bogstav og ét tal. Specialtegn er tilladt.</p>
+<?php
 }
 
 function page_footer(): void

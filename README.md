@@ -79,6 +79,11 @@ docker compose exec web php bin/create-admin.php
 
 En bruger kan kobles til en person og får så knappen "Mine begivenheder". Brugere slettes ikke, men deaktiveres.
 
+Nye brugere får en invitation på mail med et link til at vælge adgangskode (gyldigt i 7 dage). Har man glemt
+sin adgangskode, kan man få et link på mail fra login-siden (gyldigt i 60 minutter, højst 3 mails i timen).
+Linkene kan kun bruges én gang, og et nyt link gør det forrige ugyldigt. Under "Min konto" (klik på dit navn)
+kan man skifte sin adgangskode; man bliver så logget ud alle andre steder.
+
 Scriptet kan også bruges, hvis man har låst sig selv ude. Køres det med en eksisterende mail, bliver
 brugeren aktiv administrator med en ny adgangskode. Adgangskoder skal være 12–256 tegn med mindst ét
 stort bogstav, ét lille bogstav og ét tal. Efter 5 forkerte forsøg på 15 minutter afvises login for den mail.

@@ -9,9 +9,21 @@ $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_post_csrf();
-    $errors = Users::saveAll($_POST, (int)Auth::user()['id']);
+    $me = Auth::user();
+    if (isset($_POST['invite'])) {
+        // Knappen "Send invitation" ved en bruger: sender kun mailen og gemmer ikke resten af formularen
+        $inviteErrors = PasswordReset::invite((int)$_POST['invite'], $me['name']);
+        flash($inviteErrors ? implode(' ', $inviteErrors) : 'Invitationen er sendt.', $inviteErrors ? 'error' : 'ok');
+        redirect("users.php?year=$year");
+    }
+    [$newId, $errors] = Users::saveAll($_POST, (int)$me['id']);
     if (!$errors) {
-        flash('Brugerne er gemt.');
+        $inviteErrors = $newId && !empty($_POST['new_invite']) ? PasswordReset::invite($newId, $me['name']) : [];
+        if ($inviteErrors) {
+            flash('Brugerne er gemt, men invitationen kunne ikke sendes: ' . implode(' ', $inviteErrors), 'error');
+        } else {
+            flash($newId && !empty($_POST['new_invite']) ? 'Brugerne er gemt, og invitationen er sendt.' : 'Brugerne er gemt.');
+        }
         redirect("users.php?year=$year");
     }
 }
@@ -66,6 +78,10 @@ page_header('Brugere');
         <?php if ($id === $selfId): ?><input type="hidden" name="active[<?= $id ?>]" value="1"><?php endif; ?>
         <span class="usage muted">
           <?php if ($u['password_hash'] === null): ?>Har ikke valgt adgangskode
+            <?php if ($active): ?>
+              <button class="btn small" type="submit" name="invite" value="<?= $id ?>" formnovalidate
+                title="Sender en mail med et link til at vælge adgangskode (ændringer i formularen gemmes ikke)">Send invitation</button>
+            <?php endif; ?>
           <?php elseif ($u['last_login_at']): ?>Sidst logget ind <?= h(date_da($u['last_login_at'], true)) ?>
           <?php else: ?>Har ikke logget ind<?php endif; ?>
         </span>
@@ -81,7 +97,8 @@ page_header('Brugere');
       <label>Rolle<?= $roleSelect('new_role', $in['new_role'] ?? 'reader') ?></label>
       <label>Person<?= $personSelect('new_person', (int)($in['new_person'] ?? 0) ?: null) ?></label>
     </div>
-    <p class="muted">Den nye bruger kan logge ind, når vedkommende har valgt en adgangskode.</p>
+    <label class="inline"><input type="checkbox" name="new_invite" value="1" <?= !$errors || !empty($in['new_invite']) ? 'checked' : '' ?>>
+      Send invitation på mail, så brugeren kan vælge sin adgangskode (linket virker i <?= PasswordReset::INVITE_DAYS ?> dage)</label>
   </fieldset>
 
   <div class="actions">
