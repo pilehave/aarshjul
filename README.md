@@ -15,6 +15,7 @@ docker compose up -d --build
 |------------|-------------------------|----------------------------------------------------|
 | Webapp     | http://localhost:8080   | PHP 8.1 + Apache, webrod `public/`                 |
 | phpMyAdmin | http://localhost:8081   | Logger automatisk ind som root                     |
+| Mailpit    | http://localhost:8025   | Fanger alle mails under udvikling                  |
 | MariaDB    | `localhost:3306`        | 10.11, data i named volume `db_data`               |
 
 Projektmappen er mountet i containeren, så ændringer i VS Code slår igennem med det samme.
@@ -58,6 +59,17 @@ eller en `config.local.php`, der returnerer et array.
 
 Kræver PHP-udvidelserne `pdo_mysql`, `zip` (Excel-eksport), `fileinfo` og `mbstring`.
 På Apache/nginx skal webroden pege på `public/`, så `storage/` og `src/` ikke er tilgængelige.
+
+## Mail
+
+Mails sendes med `src/Mailer.php`, en lille SMTP-klient uden afhængigheder. Under udvikling sendes alt
+til Mailpit, og mails kan ses på http://localhost:8025. Til rigtig afsendelse sættes `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` og `APP_URL` i `.env` (se eksemplet
+med Simply.com i `.env.example`). Opsætningen kan afprøves med:
+
+```powershell
+docker compose exec web php bin/send-test-mail.php din@adresse.dk
+```
 
 ## Tests
 

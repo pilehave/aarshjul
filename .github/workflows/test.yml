@@ -18,7 +18,7 @@ jobs:
           coverage: none
 
       - name: Syntakstjek
-        run: find src public tests config.php -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find src public tests bin config.php -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Tests
         run: php tests/run.php

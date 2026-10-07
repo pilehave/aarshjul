@@ -1,6 +1,6 @@
 <?php
 // Konfiguration. Kan overstyres med miljøvariabler (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS,
-// som Docker-miljøet sætter, eller de ældre AARSHJUL_DB_HOST osv.)
+// APP_URL, SMTP_*, MAIL_FROM*, som Docker-miljøet sætter, eller med præfikset AARSHJUL_)
 // eller ved at oprette config.local.php, der returnerer et array med de samme nøgler.
 $env = static function (string $name, string $default): string {
     foreach (["AARSHJUL_$name", $name] as $key) {
@@ -19,6 +19,16 @@ $config = [
     'db_pass'       => $env('DB_PASS', 'aarshjul'),
     'upload_dir'    => __DIR__ . '/storage/uploads',
     'max_upload_mb' => 20,
+    // Adressen, årshjulet ligger på. Bruges til links i mails (aldrig Host-headeren).
+    'app_url'        => rtrim($env('APP_URL', 'http://localhost:8080'), '/'),
+    // Udgående mail (se src/Mailer.php). smtp_secure: tls (STARTTLS), ssl eller none (kun Mailpit).
+    'smtp_host'      => $env('SMTP_HOST', 'localhost'),
+    'smtp_port'      => $env('SMTP_PORT', '587'),
+    'smtp_secure'    => $env('SMTP_SECURE', 'tls'),
+    'smtp_user'      => $env('SMTP_USER', ''),
+    'smtp_pass'      => $env('SMTP_PASS', ''),
+    'mail_from'      => $env('MAIL_FROM', ''),
+    'mail_from_name' => $env('MAIL_FROM_NAME', 'Årshjul'),
 ];
 if (is_file(__DIR__ . '/config.local.php')) {
     $config = array_merge($config, require __DIR__ . '/config.local.php');

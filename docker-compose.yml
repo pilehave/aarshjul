@@ -16,9 +16,26 @@ services:
       DB_NAME: ${DB_NAME:-aarshjul}
       DB_USER: ${DB_USER:-aarshjul}
       DB_PASS: ${DB_PASS:-aarshjul}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      # Uden SMTP_HOST i .env sendes mails til Mailpit (http://localhost:8025)
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-none}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-aarshjul@example.com}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Årshjul}
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Fanger alle mails under udvikling, så de ikke sendes til rigtige modtagere
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
 
   db:
     image: mariadb:10.11
