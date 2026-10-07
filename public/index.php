@@ -14,6 +14,14 @@ $people = Events::people();
 $categories = Categories::all();
 $label = year_label($year);
 $crossesYear = Settings::startMonth() !== 1;
+$isAdmin = Auth::can('admin');          // må redigere begivenheder, kategorier, personer, indstillinger og brugere
+$canEdit = Auth::can('contributor');    // må sætte flueben og skrive noter på forekomster
+$myPersonId = (int)Auth::user()['person_id'] ?: null;
+/** Begivenhedens titel, som link til redigering for administratorer */
+function event_link(array $event, int $year, bool $isAdmin): string
+{
+    return $isAdmin ? '<a href="event.php?id=' . (int)$event['id'] . '&amp;year=' . $year . '">' . h($event['title']) . '</a>' : h($event['title']);
+}
 // Detaljer til modalen, der åbnes ved klik på en begivenhed i hjulet (nøglet som $occ, se data-occ i Wheel)
 $details = array_map(fn(array $o) => [
     'id'          => (int)$o['event']['id'],
@@ -41,9 +49,10 @@ $details = array_map(fn(array $o) => [
     'links'       => array_map(fn($l) => ['url' => $l['url'], 'label' => (string)$l['label']], $o['links']),
     'files'       => array_map(fn($f) => ['id' => (int)$f['id'], 'name' => $f['original_name'], 'kb' => (int)ceil($f['size_bytes'] / 1024)], $o['files']),
     'blocked'     => $o['blocked'],
-    'edit'        => 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year,
+    'edit'        => $isAdmin ? 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year : null,
 ], $occ);
-$q = fn(array $p) => '?' . http_build_query(array_filter(['year' => $year, 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null] + $p));
+// Nuværende filtre med $p som ændringer (null fjerner en parameter)
+$q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null]));
 
 page_header("Årshjul $label");
 ?>
@@ -55,12 +64,15 @@ page_header("Årshjul $label");
     <a class="btn" href="<?= h($q(['year' => $year + 1])) ?>"><?= h(year_label($year + 1)) ?> ›</a>
   </div>
   <div class="spacer"></div>
+  <?php if ($isAdmin): ?>
   <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
   <a class="btn" href="categories.php?year=<?= $year ?>">Kategorier</a>
   <a class="btn" href="people.php?year=<?= $year ?>">Personer</a>
+  <a class="btn" href="users.php?year=<?= $year ?>">Brugere</a>
   <a class="btn icon" href="settings.php?year=<?= $year ?>" title="Indstillinger" aria-label="Indstillinger">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
   </a>
+  <?php endif; ?>
  </div>
  <div class="toolbar-row">
   <form method="get" class="filter">
@@ -73,6 +85,10 @@ page_header("Årshjul $label");
         <?php endforeach; ?>
       </select>
     </label>
+    <?php if ($myPersonId): ?>
+      <a class="btn <?= $personId === $myPersonId ? 'primary' : '' ?>" href="<?= h($q(['person' => $personId === $myPersonId ? null : $myPersonId])) ?>"
+        title="Vis kun begivenheder, du er tilknyttet">Mine begivenheder</a>
+    <?php endif; ?>
     <label><span class="field-label">Kategori</span>
       <select name="category" onchange="this.form.submit()">
         <option value="">Alle</option>
@@ -117,7 +133,7 @@ page_header("Årshjul $label");
 
   <section class="list" id="event-list">
     <?php if (!$occ): ?>
-      <p class="muted">Ingen begivenheder i <?= h($label) ?>. <a href="event.php?year=<?= $year ?>">Opret den første</a>.</p>
+      <p class="muted">Ingen begivenheder i <?= h($label) ?>.<?php if ($isAdmin): ?> <a href="event.php?year=<?= $year ?>">Opret den første</a>.<?php endif; ?></p>
     <?php endif; ?>
     <?php $curMonth = ''; foreach ($occ as $o):
       $ev = $o['event'];
@@ -132,11 +148,15 @@ page_header("Årshjul $label");
           <input type="hidden" name="id" value="<?= (int)$ev['id'] ?>">
           <input type="hidden" name="date" value="<?= h($o['date']) ?>">
           <input type="hidden" name="back" value="<?= h($_SERVER['REQUEST_URI']) ?>">
-          <input type="checkbox" name="done" value="1" title="<?= $o['blocked'] && !$o['done'] ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt' ?>"
-            <?= $o['done'] ? 'checked' : '' ?> <?= $o['blocked'] && !$o['done'] ? 'disabled' : '' ?> onchange="this.form.submit()">
+          <input type="checkbox" name="done" value="1" title="<?= !$canEdit ? ($o['done'] ? 'Opfyldt' : 'Ikke opfyldt') : ($o['blocked'] && !$o['done'] ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt') ?>"
+            <?= $o['done'] ? 'checked' : '' ?> <?= !$canEdit || ($o['blocked'] && !$o['done']) ? 'disabled' : '' ?> onchange="this.form.submit()">
         </form>
         <div class="occ-body">
-          <a class="occ-title" href="event.php?id=<?= (int)$ev['id'] ?>&amp;year=<?= $year ?>"><?= h($ev['title']) ?></a>
+          <?php if ($isAdmin): ?>
+            <a class="occ-title" href="event.php?id=<?= (int)$ev['id'] ?>&amp;year=<?= $year ?>"><?= h($ev['title']) ?></a>
+          <?php else: ?>
+            <span class="occ-title"><?= h($ev['title']) ?></span>
+          <?php endif; ?>
           <span class="occ-cat"><?= h($ev['category_name']) ?></span>
           <?php if ($o['overdue']): ?><span class="occ-overdue">Overskredet</span><?php endif; ?>
           <div class="occ-meta">
@@ -161,13 +181,13 @@ page_header("Årshjul $label");
           <?php endif; ?>
           <?php foreach ($o['prereqs'] as $p): ?>
             <div class="prereq <?= $p['done'] ? 'ok' : 'wait' ?>">
-              <?= $p['done'] ? '✓' : '⏳' ?> Afhænger af <a href="event.php?id=<?= (int)$p['event']['id'] ?>&amp;year=<?= $year ?>"><?= h($p['event']['title']) ?></a>
+              <?= $p['done'] ? '✓' : '⏳' ?> Afhænger af <?= event_link($p['event'], $year, $isAdmin) ?>
               <?= $p['date'] ? '(' . h(date_da($p['date'], true)) . ')' : '(ingen forekomst)' ?>
             </div>
           <?php endforeach; ?>
           <?php foreach ($o['dependents'] as $d): ?>
             <div class="prereq">
-              → Forudsætning for <a href="event.php?id=<?= (int)$d['event']['id'] ?>&amp;year=<?= $year ?>"><?= h($d['event']['title']) ?></a>
+              → Forudsætning for <?= event_link($d['event'], $year, $isAdmin) ?>
               <?= $d['date'] ? '(' . h(date_da($d['date'], true)) . ')' : '(ingen forekomst)' ?>
             </div>
           <?php endforeach; ?>
@@ -178,7 +198,7 @@ page_header("Årshjul $label");
 </div>
 
 <script type="application/json" id="occ-data"><?= json_encode($details, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
-<dialog class="modal" id="occ-modal" aria-labelledby="occ-modal-title">
+<dialog class="modal" id="occ-modal" aria-labelledby="occ-modal-title" data-can-edit="<?= $canEdit ? 1 : 0 ?>">
  <div class="modal-body">
   <div class="modal-head">
     <h2 id="occ-modal-title" data-f="title"></h2>
@@ -210,21 +230,25 @@ page_header("Årshjul $label");
     <input type="hidden" name="date">
     <input type="hidden" name="back">
     <h3>Kun denne forekomst</h3>
-    <label>Note<textarea name="note" rows="3" maxlength="5000" placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
-    <div class="field-label">Links</div>
+    <label data-f="note-label">Note<textarea name="note" rows="3" maxlength="5000" <?= $canEdit ? '' : 'readonly' ?> placeholder="Fx &quot;Mødet holdes på Teams&quot; eller &quot;Afventer tal fra økonomi&quot;"></textarea></label>
+    <div class="field-label" data-f="links-label">Links</div>
     <ul class="plain" data-f="link-list"></ul>
-    <div id="occ-links">
+    <div id="occ-links" <?= $canEdit ? '' : 'hidden' ?>>
       <div class="row link-row">
         <label class="grow">URL<input type="url" name="link_url[]" placeholder="https://"></label>
         <label class="grow">Tekst<input name="link_label[]"></label>
         <button type="button" class="btn small" data-remove-row>✕</button>
       </div>
     </div>
+    <?php if ($canEdit): ?>
     <button type="button" class="btn small" data-add-link="occ-links">+ Tilføj link</button>
-    <div class="field-label modal-files-label">Filer</div>
+    <?php endif; ?>
+    <div class="field-label modal-files-label" data-f="files-label">Filer</div>
     <ul class="plain files" data-f="files"></ul>
-    <label>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
+    <label <?= $canEdit ? '' : 'hidden' ?>>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
+    <?php if ($canEdit): ?>
     <button class="btn primary" type="submit">Gem note</button>
+    <?php endif; ?>
   </form>
   <div class="actions">
     <a class="btn primary" data-f="edit" href="#">Redigér begivenhed</a>

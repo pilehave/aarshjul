@@ -22,6 +22,7 @@ require __DIR__ . '/Events.php';
 require __DIR__ . '/Wheel.php';
 require __DIR__ . '/Mailer.php';
 require __DIR__ . '/Auth.php';
+require __DIR__ . '/Users.php';
 
 function config(string $key)
 {

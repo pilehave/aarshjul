@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
+require_role('contributor');
 
 require_post_csrf();
 $back = local_path((string)($_POST['back'] ?? ''));

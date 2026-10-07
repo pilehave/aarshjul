@@ -123,7 +123,9 @@ final class Wheel
             $g .= '</g>';
             if ($links) {
                 // data-occ er forekomstens nøgle i $occurrences; forsiden åbner en modal med detaljerne ud fra den
-                $g = sprintf('<a href="event.php?id=%d&amp;year=%d" data-occ="%s">%s</a>', $ev['id'], $year, h((string)$k), $g);
+                // Uden JavaScript (eller ved ctrl-klik) går linket til redigering, eller til modalen for ikke-administratorer
+                $href = Auth::can('admin') ? sprintf('event.php?id=%d&amp;year=%d', $ev['id'], $year) : sprintf('#forekomst=%d_%s', $ev['id'], $occ['date']);
+                $g = sprintf('<a href="%s" data-occ="%s">%s</a>', $href, h((string)$k), $g);
             }
             $o[] = $g;
         }

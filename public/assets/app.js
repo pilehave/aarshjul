@@ -181,6 +181,7 @@
   var wheelEl = document.getElementById('wheel');
   if (modal && occData && wheelEl && modal.showModal) {
     var details = JSON.parse(occData.textContent);
+    var canEdit = modal.getAttribute('data-can-edit') === '1'; // læsere ser flueben og noter, men kan ikke ændre dem
     var field = function (name) { return modal.querySelector('[data-f="' + name + '"]'); };
     var showRow = function (name, on) { modal.querySelectorAll('[data-row="' + name + '"]').forEach(function (el) { el.hidden = !on; }); };
     var openOcc = function (d) {
@@ -199,8 +200,8 @@
       check.elements.date.value = d.date;
       check.elements.back.value = location.pathname + location.search + '#forekomst=' + d.id + '_' + d.date;
       box.checked = d.done;
-      box.disabled = locked;
-      box.parentNode.title = locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
+      box.disabled = locked || !canEdit;
+      box.parentNode.title = !canEdit ? '' : locked ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt';
       field('status').hidden = !locked;
       field('overdue').hidden = !d.overdue;
 
@@ -237,9 +238,18 @@
         var del = document.createElement('label'), box = document.createElement('input');
         del.className = 'inline'; box.type = 'checkbox'; box.name = 'delete_file[]'; box.value = f.id;
         del.appendChild(box); del.appendChild(document.createTextNode(' slet'));
-        li.appendChild(a); li.appendChild(size); li.appendChild(del); files.appendChild(li);
+        li.appendChild(a); li.appendChild(size);
+        if (canEdit) li.appendChild(del);
+        files.appendChild(li);
       });
       files.hidden = !d.files.length;
+      if (!canEdit) {
+        // Kun det, der er skrevet; skjul tomme felter og hele afsnittet, hvis der intet er
+        field('note-label').hidden = !d.note;
+        field('links-label').hidden = !d.links.length;
+        field('files-label').hidden = !d.files.length;
+        nf.hidden = !d.note && !d.links.length && !d.files.length;
+      }
 
       var people = field('people');
       people.textContent = '';
@@ -270,7 +280,8 @@
       });
       showRow('dependents', d.dependents.length > 0);
 
-      field('edit').href = d.edit;
+      field('edit').hidden = !d.edit;
+      if (d.edit) field('edit').href = d.edit;
       modal.showModal();
     };
     wheelEl.addEventListener('click', function (ev) {

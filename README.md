@@ -69,6 +69,16 @@ mail, navn og adgangskode):
 docker compose exec web php bin/create-admin.php
 ```
 
+Øvrige brugere oprettes under knappen "Brugere" med en af tre roller:
+
+| Rolle         | Kan                                                                          |
+|---------------|------------------------------------------------------------------------------|
+| Læser         | se hjul og liste, åbne vedhæftede filer og eksportere                        |
+| Bidragyder    | desuden sætte flueben og skrive noter, links og filer på forekomster         |
+| Administrator | alt, inkl. begivenheder, kategorier, personer, indstillinger og brugere      |
+
+En bruger kan kobles til en person og får så knappen "Mine begivenheder". Brugere slettes ikke, men deaktiveres.
+
 Scriptet kan også bruges, hvis man har låst sig selv ude. Køres det med en eksisterende mail, bliver
 brugeren aktiv administrator med en ny adgangskode. Adgangskoder skal være 12–256 tegn med mindst ét
 stort bogstav, ét lille bogstav og ét tal. Efter 5 forkerte forsøg på 15 minutter afvises login for den mail.
