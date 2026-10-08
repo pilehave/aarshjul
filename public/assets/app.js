@@ -140,6 +140,13 @@
     if (row.parentNode.querySelectorAll('.link-row').length > 1) row.remove(); else row.querySelectorAll('input').forEach(function (i) { i.value = ''; });
   });
 
+  // --- Kategorier: vælges en baggrundsfarve, sættes fluebenet i "Baggrund", ellers gemmes farven ikke ---
+  document.addEventListener('input', function (ev) {
+    if (!ev.target.matches('.ring-color input[type=color]')) return;
+    var box = ev.target.closest('.ring-color').querySelector('input[type=checkbox]');
+    if (box) box.checked = true;
+  });
+
   // --- Forside: beskrivelser vises med 2 linjer; "Vis mere" kun når teksten faktisk er længere ---
   var descs = document.querySelectorAll('.occ-desc');
   function updateDescToggles() {
