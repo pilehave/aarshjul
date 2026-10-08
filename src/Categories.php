@@ -3,12 +3,12 @@ declare(strict_types=1);
 
 final class Categories
 {
-    /** Alle kategorier med antal begivenheder, nøglet på id og sorteret efter navn. */
+    /** Alle kategorier med antal begivenheder, nøglet på id og sorteret efter navn. ring_color er null, hvis der ikke er valgt baggrund. */
     public static function all(): array
     {
         $res = [];
-        foreach (db()->query('SELECT c.id, c.name, c.color, COUNT(e.id) AS used FROM categories c
-            LEFT JOIN events e ON e.category_id = c.id GROUP BY c.id, c.name, c.color ORDER BY c.name') as $c) {
+        foreach (db()->query('SELECT c.id, c.name, c.color, c.ring_color, COUNT(e.id) AS used FROM categories c
+            LEFT JOIN events e ON e.category_id = c.id GROUP BY c.id, c.name, c.color, c.ring_color ORDER BY c.name') as $c) {
             $res[(int)$c['id']] = $c;
         }
         return $res;
@@ -16,7 +16,8 @@ final class Categories
 
     /**
      * Gemmer kategorisiden: name[id]/color[id] for eksisterende, delete[] for sletning
-     * og new_name/new_color for en ny kategori. Returnerer fejl[].
+     * og new_name/new_color for en ny kategori. Baggrunden for ringen er ring_color[id] (new_ring_color),
+     * men gemmes kun, når has_ring_color[id] (new_has_ring_color) er sat. Returnerer fejl[].
      */
     public static function saveAll(array $in): array
     {
@@ -31,11 +32,19 @@ final class Categories
                 }
                 continue;
             }
-            $rows[$id] = ['name' => trim((string)($in['name'][$id] ?? $c['name'])), 'color' => (string)($in['color'][$id] ?? $c['color'])];
+            $rows[$id] = [
+                'name'       => trim((string)($in['name'][$id] ?? $c['name'])),
+                'color'      => (string)($in['color'][$id] ?? $c['color']),
+                'ring_color' => !empty($in['has_ring_color'][$id]) ? (string)($in['ring_color'][$id] ?? '') : null,
+            ];
         }
         $newName = trim((string)($in['new_name'] ?? ''));
         if ($newName !== '') {
-            $rows['new'] = ['name' => $newName, 'color' => (string)($in['new_color'] ?? '')];
+            $rows['new'] = [
+                'name'       => $newName,
+                'color'      => (string)($in['new_color'] ?? ''),
+                'ring_color' => !empty($in['new_has_ring_color']) ? (string)($in['new_ring_color'] ?? '') : null,
+            ];
         }
 
         $seen = [];
@@ -51,6 +60,9 @@ final class Categories
             if (!preg_match('/^#[0-9a-fA-F]{6}$/', $r['color'])) {
                 $errors[] = 'Ugyldig farve for "' . $r['name'] . '".';
             }
+            if ($r['ring_color'] !== null && !preg_match('/^#[0-9a-fA-F]{6}$/', $r['ring_color'])) {
+                $errors[] = 'Ugyldig baggrundsfarve for "' . $r['name'] . '".';
+            }
         }
         if ($errors) {
             return $errors;
@@ -64,19 +76,21 @@ final class Categories
                 $del->execute([$id]);
             }
             // Navne byttes i to trin, så den unikke nøgle ikke rammes, hvis to kategorier bytter navn
-            $upd = $pdo->prepare('UPDATE categories SET name=?, color=? WHERE id=?');
+            $lower = fn(?string $c) => $c === null ? null : strtolower($c);
+            $upd = $pdo->prepare('UPDATE categories SET name=?, color=?, ring_color=? WHERE id=?');
             foreach ($rows as $id => $r) {
                 if ($id !== 'new') {
-                    $upd->execute(["~tmp~$id", $r['color'], $id]);
+                    $upd->execute(["~tmp~$id", $lower($r['color']), $lower($r['ring_color']), $id]);
                 }
             }
             foreach ($rows as $id => $r) {
                 if ($id !== 'new') {
-                    $upd->execute([$r['name'], strtolower($r['color']), $id]);
+                    $upd->execute([$r['name'], $lower($r['color']), $lower($r['ring_color']), $id]);
                 }
             }
             if (isset($rows['new'])) {
-                $pdo->prepare('INSERT INTO categories (name, color) VALUES (?, ?)')->execute([$rows['new']['name'], strtolower($rows['new']['color'])]);
+                $pdo->prepare('INSERT INTO categories (name, color, ring_color) VALUES (?, ?, ?)')
+                    ->execute([$rows['new']['name'], $lower($rows['new']['color']), $lower($rows['new']['ring_color'])]);
             }
             $pdo->commit();
         } catch (Throwable $t) {

@@ -19,6 +19,7 @@ CREATE TABLE categories (
     id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name   VARCHAR(100) NOT NULL,
     color  CHAR(7) NOT NULL,
+    ring_color  CHAR(7) NULL,   -- baggrund for kategoriens ring ved "Én ring pr. kategori" (NULL = ingen)
     UNIQUE KEY uq_categories_name (name)
 ) ENGINE=InnoDB;
 

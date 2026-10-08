@@ -48,6 +48,14 @@ function set_start_month(int $month): void
     $p->setValue(null, ['start_month' => (string)$month]);
 }
 
+/** Sætter en indstilling uden database, ud over startmåneden (nulstilles før hver test). */
+function set_setting(string $name, string $value): void
+{
+    $p = new ReflectionProperty(Settings::class, 'cache');
+    $p->setAccessible(true);
+    $p->setValue(null, [$name => $value] + ($p->getValue() ?? []));
+}
+
 /** En begivenhed som fra Events::all() med standardværdier, der kan overskrives. */
 function ev(array $overrides = []): array
 {

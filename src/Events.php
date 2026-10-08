@@ -8,7 +8,7 @@ final class Events
     {
         $pdo = db();
         $events = [];
-        foreach ($pdo->query('SELECT e.*, c.name AS category_name, c.color FROM events e
+        foreach ($pdo->query('SELECT e.*, c.name AS category_name, c.color, c.ring_color AS category_ring_color FROM events e
             JOIN categories c ON c.id = e.category_id ORDER BY e.start_date, e.title') as $e) {
             $e += ['people' => [], 'links' => [], 'files' => [], 'depends_on' => []];
             $events[(int)$e['id']] = $e;

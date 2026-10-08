@@ -103,6 +103,19 @@ med Simply.com i `.env.example`). Opsætningen kan afprøves med:
 docker compose exec web php bin/send-test-mail.php din@adresse.dk
 ```
 
+## Ringe i hjulet
+
+Under Indstillinger vælges, hvordan begivenhederne fordeles i hjulets ringe:
+
+- **Automatisk:** Begivenhederne lægges, hvor der er plads.
+- **Én ring pr. kategori:** Hver kategori har sin egen ring. Kategoriens navn står fire gange i et tyndt bånd yderst
+  i ringen og kan slås fra. Under Kategorier kan hver kategori få en baggrundsfarve til sin ring.
+- **Én ring pr. person:** Hver person har sin egen ring, og en begivenhed med flere personer vises i hver af deres ringe.
+  Begivenheder uden personer samles i ringen "Ingen person".
+
+Overlappende begivenheder i samme ring lægges i hver sin bane, så ringen bliver bredere. Kategorier og personer uden
+begivenheder i året får ingen ring. Eksporten til PNG, PDF og SVG følger indstillingen.
+
 ## Tests
 
 `tests/` indeholder en lille testkører uden afhængigheder. Den tester datologikken (gentagelser,

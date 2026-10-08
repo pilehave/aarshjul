@@ -15,11 +15,80 @@ final class Wheel
     private const PAD = 32; // margen uden om hjulet til skyggen (viewBox går fra -PAD til SIZE + PAD)
     private const TODAY = '#d64545'; // farven for "i dag" og den aktuelle uge
     private const R_LANES_OUT = 410;
-    private const R_LANES_IN = 150;
+    private const R_LANES_IN = 120;
     private const OVERDUE = '#d64545'; // samme røde som "i dag"-markøren
 
     /** Korte forekomster tegnes mindst så mange dage brede, så de kan ses og klikkes på */
     private const MIN_SPAN = 3;
+    /** Højden på navnebåndet yderst i en fast ring (én ring pr. kategori/person) */
+    private const RING_NAME_BAND = 12;
+
+    /**
+     * Fordeler forekomsterne i ringe og baner.
+     *  auto      Én ring uden navn. Serier, der aldrig overlapper hinanden, deler bane (som før).
+     *  category  Én ring pr. kategori med navn og evt. baggrundsfarve (category_ring_color).
+     *  person    Én ring pr. person. En forekomst med flere personer kommer i hver af deres ringe,
+     *            og forekomster uden personer samles i ringen "Ingen person" til sidst.
+     * Ringene sorteres efter navn (som på Kategorier- og Personer-siden), den første yderst.
+     * Kategorier og personer uden forekomster får ingen ring. Inden for en ring lægges hver serie i den første bane,
+     * hvor den ikke overlapper andre.
+     * @return list<array{name:?string,bg:?string,lanes:list<list<array{0:int|string,1:int,2:int}>>}> lanes: [nøgle i $occurrences, start, slut]
+     */
+    public static function rings(array $occurrences, string $mode, string $from, string $to): array
+    {
+        $groups = []; // ringnøgle => [name, bg, serier]
+        foreach ($occurrences as $k => $occ) {
+            $ev = $occ['event'];
+            $keys = match ($mode) {
+                'category' => [['c' . $ev['category_id'], $ev['category_name'], $ev['category_ring_color'] ?? null]],
+                'person'   => $ev['people'] ? array_map(fn($p) => ['p' . $p['id'], $p['name'], null], $ev['people']) : [['none', 'Ingen person', null]],
+                default    => [['all', null, null]],
+            };
+            [$s, $e] = self::span($occ['date'], $occ['end'], $from, $to);
+            foreach ($keys as [$key, $name, $bg]) {
+                $groups[$key] ??= ['name' => $name, 'bg' => $bg, 'series' => []];
+                $groups[$key]['series'][$ev['id']][] = [$k, $s, $e];
+            }
+        }
+        $collator = class_exists('Collator') ? new Collator('da_DK') : null;
+        uksort($groups, function ($a, $b) use ($groups, $collator) {
+            if (($a === 'none') !== ($b === 'none')) {
+                return $a === 'none' ? 1 : -1; // "Ingen person" til sidst
+            }
+            [$na, $nb] = [(string)$groups[$a]['name'], (string)$groups[$b]['name']];
+            return $collator ? $collator->compare($na, $nb) : strcmp(mb_strtolower($na), mb_strtolower($nb));
+        });
+
+        $rings = [];
+        foreach ($groups as $g) {
+            $lanes = []; // bane => liste af [nøgle, start, slut]
+            foreach ($g['series'] as $items) {
+                for ($lane = 0; ; $lane++) {
+                    foreach ($items as [, $s, $e]) {
+                        foreach ($lanes[$lane] ?? [] as [, $ls, $le]) {
+                            if ($s < $le + 1 && $ls < $e + 1) {
+                                continue 3; // overlapper: prøv næste bane
+                            }
+                        }
+                    }
+                    break;
+                }
+                foreach ($items as $item) {
+                    $lanes[$lane][] = $item;
+                }
+            }
+            $rings[] = ['name' => $g['name'], 'bg' => $g['bg'], 'lanes' => $lanes];
+        }
+        return $rings;
+    }
+
+    /** Fuld ring mellem $rIn og $rOut som sti (to cirkler, fill-rule="evenodd") */
+    private static function annulus(float $rIn, float $rOut): string
+    {
+        $circle = fn(float $r) => sprintf('M%1$.2f %2$.2f A%3$.2f %3$.2f 0 1 1 %1$.2f %4$.2f A%3$.2f %3$.2f 0 1 1 %1$.2f %2$.2f Z',
+            self::C, self::C - $r, $r, self::C + $r);
+        return $circle($rOut) . ' ' . $circle($rIn);
+    }
 
     /**
      * Hvor i hjulet [$from, $to] en forekomst fra $date til $end tegnes: [første dag, dag efter sidste], talt i dage fra $from.
@@ -117,40 +186,55 @@ final class Wheel
                 $tx, $ty, $style, $rot, $tx, $ty, $num);
         }
 
-        // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring
-        $series = [];
-        foreach ($occurrences as $k => $occ) {
-            [$s, $e] = self::span($occ['date'], $occ['end'], $from, $to);
-            $series[$occ['event']['id']][] = [$occ, $s, $e, $k];
-        }
-        $lanes = [];   // lane => liste af [start, slut]
+        // Ringe: automatisk efter plads, eller én ring pr. kategori/person (Settings::ringMode). Ringene tegnes udefra og ind.
+        // Faste ringe får et tyndt navnebånd yderst med navnet fire gange, midt i hvert kvartal. Alle baner er lige brede,
+        // så en ring med overlappende begivenheder (flere baner) bliver bredere end de andre
+        $mode = Settings::ringMode();
+        $rings = self::rings($occurrences, $mode, $from, $to);
+        $band = $mode === 'person' || ($mode === 'category' && Settings::ringNames()) ? self::RING_NAME_BAND : 0;
+        $laneCount = array_sum(array_map(fn($r) => count($r['lanes']), $rings));
+        $laneW = min(44, (self::R_LANES_OUT - self::R_LANES_IN - count($rings) * $band) / max(1, $laneCount));
         $placed = [];
-        $ownRing = false; // sæt til true for at give hver serie sin egen ring
-        foreach (array_values($series) as $idx => $items) {
-            for ($lane = $ownRing ? $idx : 0; ; $lane++) {
-                $free = true;
-                foreach ($items as [, $s, $e]) {
-                    foreach ($lanes[$lane] ?? [] as [$ls, $le]) {
-                        if ($s < $le + 1 && $ls < $e + 1) {
-                            $free = false;
-                            break 2;
-                        }
-                    }
+        $rOuter = self::R_LANES_OUT;
+        foreach ($rings as $ri => $ring) {
+            $rBandIn = $rOuter - $band;
+            $rInner = $rBandIn - count($ring['lanes']) * $laneW;
+            if ($ring['bg'] !== null) {
+                $o[] = sprintf('<path class="ring-bg" d="%s" fill="%s" fill-rule="evenodd"/>', self::annulus($rInner, $rOuter), h($ring['bg']));
+            }
+            if ($band) {
+                // Navnebåndet er lidt mørkere end ringens baggrund
+                $o[] = sprintf('<path class="ring-band" d="%s" fill="%s" fill-rule="evenodd"/>', self::annulus($rBandIn, $rOuter), $ring['bg'] !== null ? h($ring['bg']) : '#eef1f6');
+                if ($ring['bg'] !== null) {
+                    $o[] = sprintf('<path d="%s" fill="#000000" fill-opacity="0.08" fill-rule="evenodd"/>', self::annulus($rBandIn, $rOuter));
                 }
-                if ($free) {
-                    break;
+                for ($q = 0; $q < 4; $q++) {
+                    $o[] = self::label($q * 90 + 5, $q * 90 + 85, ($rBandIn + $rOuter) / 2, $ring['name'], 9, '#46536b', 'bold', "r{$ri}q{$q}");
                 }
             }
-            foreach ($items as [$occ, $s, $e, $k]) {
-                $lanes[$lane][] = [$s, $e];
-                $placed[] = [$occ, $s, $e, $lane, $k];
+            if ($mode !== 'auto') {
+                $o[] = sprintf('<circle cx="%1$d" cy="%1$d" r="%2$.1f" fill="none" stroke="#dfe4ec" stroke-width="1"/>', $C, $rInner);
+            }
+            foreach ($ring['lanes'] as $li => $items) {
+                foreach ($items as [$k, $s, $e]) {
+                    $placed[] = [$occurrences[$k], $s, $e, $rBandIn - $li * $laneW, $k];
+                }
+            }
+            $rOuter = $rInner;
+        }
+        if ($mode !== 'auto') {
+            // Månedsstregerne igen, så de også ses hen over ringenes baggrund
+            for ($i = 0; $i < 12; $i++) {
+                $a = $ang($day($start->modify("+$i months")->format('Y-m-d')));
+                [$x1, $y1] = self::pt($a, self::R_LANES_IN);
+                [$x2, $y2] = self::pt($a, self::R_LANES_OUT);
+                $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#ffffff" stroke-opacity="0.7" stroke-width="1.5"/>', $x1, $y1, $x2, $y2);
             }
         }
-        $laneW = min(44, (self::R_LANES_OUT - self::R_LANES_IN) / max(1, count($lanes)));
 
-        foreach ($placed as $i => [$occ, $s, $e, $lane, $k]) {
+        foreach ($placed as $i => [$occ, $s, $e, $laneOut, $k]) {
             $ev = $occ['event'];
-            $rOut = self::R_LANES_OUT - $lane * $laneW - 2;
+            $rOut = $laneOut - 2;
             $rIn = $rOut - $laneW + 4;
             $a1 = $ang($s);
             $a2 = $ang($e);
@@ -207,8 +291,8 @@ final class Wheel
 
         // Midte
         $o[] = sprintf('<circle cx="%1$d" cy="%1$d" r="%2$d" fill="#1f2d48"/>', $C, self::R_LANES_IN - 10);
-        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="%3$d" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%4$s</text>', $C, $C - 8, strlen($label) > 4 ? 52 : 64, h($label));
-        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="18" fill="#b9c4da" text-anchor="middle">Årshjul</text>', $C, $C + 50);
+        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="%3$d" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%4$s</text>', $C, $C - 8, strlen($label) > 4 ? 44 : 54, h($label));
+        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="16" fill="#b9c4da" text-anchor="middle">Årshjul</text>', $C, $C + 42);
         $o[] = '</svg>';
         return implode("\n", $o);
     }
