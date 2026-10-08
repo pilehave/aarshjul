@@ -76,7 +76,7 @@ final class Wheel
             if ($monday >= 0) {
                 [$x1, $y1] = self::pt($ang($monday), self::R_WEEK_IN);
                 [$x2, $y2] = self::pt($ang($monday), self::R_MONTH_IN);
-                $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#c4ccda" stroke-width="1"/>', $x1, $y1, $x2, $y2);
+                $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#a3aec2" stroke-width="1.2"/>', $x1, $y1, $x2, $y2);
             }
             $weeks[] = [(int)$d->format('W'), max(0, $monday), min($daysInYear, $monday + 7)];
         }
@@ -107,8 +107,8 @@ final class Wheel
             $a = $ang(($s + $e) / 2);
             $rot = self::textRotation($a);
             [$tx, $ty] = self::pt($a, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
-            $style = $num === $thisWeek ? 'fill="' . self::TODAY . '" font-weight="bold"' : 'fill="#7a8599"';
-            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" %s text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d</text>',
+            $style = $num === $thisWeek ? 'fill="' . self::TODAY . '" font-weight="bold"' : 'fill="#46536b" font-weight="600"';
+            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="11" %s text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d</text>',
                 $tx, $ty, $style, $rot, $tx, $ty, $num);
         }
 

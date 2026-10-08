@@ -6,7 +6,7 @@ declare(strict_types=1);
 /** Ugenumrene i hjulet i den rækkefølge, de tegnes */
 function wheel_weeks(int $year): array
 {
-    preg_match_all('~<text [^>]*font-size="9" fill="#[0-9a-f]{6}"[^>]*>(\d+)</text>~', Wheel::svg($year, [], false), $m);
+    preg_match_all('~<text [^>]*font-size="11" fill="#[0-9a-f]{6}"[^>]*>(\d+)</text>~', Wheel::svg($year, [], false), $m);
     return array_map('intval', $m[1]);
 }
 
@@ -101,7 +101,7 @@ test('Tekst langs hjulet roteres med hjulet og vendes på den nederste halvdel',
 });
 
 test('Alle ugenumre i hjulet er roteret om deres eget midtpunkt', function () {
-    preg_match_all('~<text x="([\d.]+)" y="([\d.]+)" font-size="9"[^>]*transform="rotate\((-?[\d.]+) ([\d.]+) ([\d.]+)\)"[^>]*>\d+</text>~',
+    preg_match_all('~<text x="([\d.]+)" y="([\d.]+)" font-size="11"[^>]*transform="rotate\((-?[\d.]+) ([\d.]+) ([\d.]+)\)"[^>]*>\d+</text>~',
         Wheel::svg(2026, [], false), $m, PREG_SET_ORDER);
     assert_same(53, count($m), 'Alle 53 uger i 2026 har en rotation');
     foreach ($m as [, $x, $y, $rot, $cx, $cy]) {
@@ -114,7 +114,7 @@ test('Alle ugenumre i hjulet er roteret om deres eget midtpunkt', function () {
 
 test('Den aktuelle uge er fed og rød, og stregen for i dag stopper ved ugeringen', function () {
     $svg = Wheel::svg((int)date('Y'), [], false); // hjulet starter i januar og indeholder altså i dag
-    preg_match_all('~<text [^>]*font-size="9" fill="#d64545" font-weight="bold"[^>]*>(\d+)</text>~', $svg, $m);
+    preg_match_all('~<text [^>]*font-size="11" fill="#d64545" font-weight="bold"[^>]*>(\d+)</text>~', $svg, $m);
     assert_same([(int)date('W')], array_map('intval', $m[1]), 'Kun den aktuelle uge er fremhævet');
     assert_true((bool)preg_match('~<line class="today" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"~', $svg, $l));
     $r = hypot((float)$l[3] - 500, (float)$l[4] - 500);
