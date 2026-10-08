@@ -22,6 +22,8 @@ final class Wheel
     private const MIN_SPAN = 3;
     /** Højden på navnebåndet yderst i en fast ring (én ring pr. kategori/person) */
     private const RING_NAME_BAND = 12;
+    /** Bredden på skyggen ved sammenstødet øverst, hvor årets sidste måned møder den første */
+    private const SEAM_WIDTH = 18;
 
     /**
      * Fordeler forekomsterne i ringe og baner.
@@ -82,6 +84,20 @@ final class Wheel
         return $rings;
     }
 
+    /**
+     * Stribe på SEAM_WIDTH px lige til højre for sammenstødet øverst, fra midtercirklen (R_LANES_IN) til yderkanten (R_MONTH_OUT).
+     * Siderne følger de to cirkler, så striben slutter præcis ved hjulets kanter.
+     */
+    private static function seamPath(): string
+    {
+        $c = self::C;
+        $w = self::SEAM_WIDTH;
+        $yOut = $c - sqrt(self::R_MONTH_OUT ** 2 - $w ** 2);
+        $yIn = $c - sqrt(self::R_LANES_IN ** 2 - $w ** 2);
+        return sprintf('M%1$d %2$.2f A%3$d %3$d 0 0 1 %4$d %5$.2f L%4$d %6$.2f A%7$d %7$d 0 0 0 %1$d %8$.2f Z',
+            $c, $c - self::R_MONTH_OUT, self::R_MONTH_OUT, $c + $w, $yOut, $yIn, self::R_LANES_IN, $c - self::R_LANES_IN);
+    }
+
     /** Fuld ring mellem $rIn og $rOut som sti (to cirkler, fill-rule="evenodd") */
     private static function annulus(float $rIn, float $rOut): string
     {
@@ -125,7 +141,12 @@ final class Wheel
         $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label));
         $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern>'
             // Grå skygge under hjulets yderkant, så hjulet ser ud til at svæve over baggrunden
-            . '<filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/></filter></defs>';
+            . '<filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/></filter>'
+            // Skyggen ved sammenstødet øverst: mørkest ved linjen og udtonet mod højre
+            . sprintf('<linearGradient id="seam-shadow" gradientUnits="userSpaceOnUse" x1="%1$d" y1="0" x2="%2$d" y2="0">'
+                . '<stop offset="0" stop-color="#1f2d48" stop-opacity="0.22"/><stop offset="1" stop-color="#1f2d48" stop-opacity="0"/></linearGradient>',
+                self::C, self::C + self::SEAM_WIDTH)
+            . '</defs>';
         $o[] = sprintf('<rect x="%1$d" y="%1$d" width="%2$d" height="%2$d" fill="#ffffff"/>', -self::PAD, $full);
         $o[] = sprintf('<circle class="wheel-shadow" cx="%1$d" cy="%1$d" r="%2$d" fill="#ffffff" filter="url(#wheel-shadow)"/>', $C, self::R_MONTH_OUT);
 
@@ -274,6 +295,12 @@ final class Wheel
             }
             $o[] = $g;
         }
+
+        // Skygge ved sammenstødet øverst, hvor årets sidste måned møder den første: en blød stribe til højre for linjen,
+        // som om slutningen af året ligger oven på starten. Den ligger over begivenhederne, men tager ikke klik
+        $o[] = sprintf('<g class="seam" pointer-events="none"><path d="%1$s" fill="url(#seam-shadow)" fill-rule="evenodd"/>'
+            . '<line x1="%2$d" y1="%3$d" x2="%2$d" y2="%4$d" stroke="#1f2d48" stroke-opacity="0.35" stroke-width="1"/></g>',
+            self::seamPath(), $C, $C - self::R_MONTH_OUT, $C - self::R_LANES_IN);
 
         // I dag: en streg hen over begivenhederne, der stopper ved ugeringen, så den ikke dækker uge- og månedsnavne,
         // og en lille trekant i yderkanten, der peger ind mod dagen

@@ -139,3 +139,16 @@ test('Hjulet har en skygge, og viewBox giver plads til den', function () {
     assert_true(500 + $reach <= (int)$v[1] + (int)$v[3], "Skyggen ($reach) går ud over viewBox");
     assert_true(500 - $reach + (int)$f[1] >= (int)$v[1], 'Skyggen går ud over viewBox foroven');
 });
+
+// --- Skygge ved sammenstødet øverst ---
+
+test('Skyggen ved sammenstødet ligger til højre for toppen, går fra midtercirklen til yderkanten og tager ikke klik', function () {
+    $svg = Wheel::svg(2026, [], false);
+    assert_true((bool)preg_match('~<linearGradient id="seam-shadow"[^>]*x1="500"[^>]*x2="(\d+)"~', $svg, $g), 'Gradienten findes');
+    assert_true((int)$g[1] > 500, 'Udtoner mod højre');
+    assert_true((bool)preg_match('~<g class="seam" pointer-events="none"><path d="M500 ([\d.]+) A\d+ \d+ 0 0 1 ([\d.]+) ([\d.]+) L[\d.]+ ([\d.]+)~', $svg, $p));
+    assert_same([10.0, (float)$g[1]], [(float)$p[1], (float)$p[2]], 'Starter øverst ved yderkanten (r=490) og er lige så bred som gradienten');
+    $w = (float)$p[2] - 500;
+    assert_true(abs(hypot($w, 500 - (float)$p[3]) - 490) < 0.1, 'Ydre hjørne ligger på yderkanten');
+    assert_true(abs(hypot($w, 500 - (float)$p[4]) - 120) < 0.1, 'Indre hjørne ligger på midtercirklen');
+});
