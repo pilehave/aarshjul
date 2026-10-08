@@ -12,6 +12,7 @@ final class Wheel
     private const R_MONTH_OUT = 490;
     private const R_MONTH_IN = 440;
     private const R_WEEK_IN = 418;
+    private const TODAY = '#d64545'; // farven for "i dag" og den aktuelle uge
     private const R_LANES_OUT = 410;
     private const R_LANES_IN = 150;
     private const OVERDUE = '#d64545'; // samme røde som "i dag"-markøren
@@ -94,6 +95,10 @@ final class Wheel
                 array_pop($weeks);
             }
         }
+        // Den aktuelle uge vises med fed rød skrift (se også "I dag" nedenfor)
+        $today = date('Y-m-d');
+        $todayInWheel = $today >= $from && $today <= $to;
+        $thisWeek = $todayInWheel ? (int)date('W') : null;
         foreach ($weeks as [$num, $s, $e]) {
             if ($e - $s < 2) {
                 continue; // en enkelt dag er for smal til et nummer
@@ -102,8 +107,9 @@ final class Wheel
             $a = $ang(($s + $e) / 2);
             $rot = self::textRotation($a);
             [$tx, $ty] = self::pt($a, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
-            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d</text>',
-                $tx, $ty, $rot, $tx, $ty, $num);
+            $style = $num === $thisWeek ? 'fill="' . self::TODAY . '" font-weight="bold"' : 'fill="#7a8599"';
+            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" %s text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d</text>',
+                $tx, $ty, $style, $rot, $tx, $ty, $num);
         }
 
         // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring
@@ -180,13 +186,18 @@ final class Wheel
             $o[] = $g;
         }
 
-        // I dag
-        $today = date('Y-m-d');
-        if ($today >= $from && $today <= $to) {
+        // I dag: en streg hen over begivenhederne, der stopper ved ugeringen, så den ikke dækker uge- og månedsnavne,
+        // og en lille trekant i yderkanten, der peger ind mod dagen
+        if ($todayInWheel) {
             $a = $ang($day($today) + 0.5);
             [$x1, $y1] = self::pt($a, self::R_LANES_IN - 6);
-            [$x2, $y2] = self::pt($a, self::R_MONTH_OUT);
-            $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#d64545" stroke-width="2.5" stroke-linecap="round"/>', $x1, $y1, $x2, $y2);
+            [$x2, $y2] = self::pt($a, self::R_WEEK_IN);
+            $o[] = sprintf('<line class="today" x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s" stroke-width="2.5" stroke-linecap="round"/>', $x1, $y1, $x2, $y2, self::TODAY);
+            $half = rad2deg(7 / self::R_MONTH_OUT); // trekantens halve bredde (7 px) som vinkel
+            [$tx, $ty] = self::pt($a, self::R_MONTH_OUT - 9);
+            [$bx1, $by1] = self::pt($a - $half, self::R_MONTH_OUT + 4);
+            [$bx2, $by2] = self::pt($a + $half, self::R_MONTH_OUT + 4);
+            $o[] = sprintf('<path class="today" d="M%.1f %.1f L%.1f %.1f L%.1f %.1f Z" fill="%s"/>', $tx, $ty, $bx1, $by1, $bx2, $by2, self::TODAY);
         }
 
         // Midte

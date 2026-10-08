@@ -6,7 +6,7 @@ declare(strict_types=1);
 /** Ugenumrene i hjulet i den rækkefølge, de tegnes */
 function wheel_weeks(int $year): array
 {
-    preg_match_all('~<text [^>]*font-size="9" fill="#7a8599"[^>]*>(\d+)</text>~', Wheel::svg($year, [], false), $m);
+    preg_match_all('~<text [^>]*font-size="9" fill="#[0-9a-f]{6}"[^>]*>(\d+)</text>~', Wheel::svg($year, [], false), $m);
     return array_map('intval', $m[1]);
 }
 
@@ -108,4 +108,21 @@ test('Alle ugenumre i hjulet er roteret om deres eget midtpunkt', function () {
         assert_same([$x, $y], [$cx, $cy]);
         assert_true(abs((float)$rot) <= 90, "Rotation $rot får teksten til at stå på hovedet");
     }
+});
+
+// --- I dag ---
+
+test('Den aktuelle uge er fed og rød, og stregen for i dag stopper ved ugeringen', function () {
+    $svg = Wheel::svg((int)date('Y'), [], false); // hjulet starter i januar og indeholder altså i dag
+    preg_match_all('~<text [^>]*font-size="9" fill="#d64545" font-weight="bold"[^>]*>(\d+)</text>~', $svg, $m);
+    assert_same([(int)date('W')], array_map('intval', $m[1]), 'Kun den aktuelle uge er fremhævet');
+    assert_true((bool)preg_match('~<line class="today" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"~', $svg, $l));
+    $r = hypot((float)$l[3] - 500, (float)$l[4] - 500);
+    assert_true(abs($r - 418) < 0.2, "Stregen slutter ved ugeringens inderkant (r=$r)");
+    assert_same(1, preg_match_all('~<path class="today" ~', $svg), 'Én trekant i yderkanten');
+});
+
+test('Ingen markering af i dag i et hjul, der ikke indeholder i dag', function () {
+    $svg = Wheel::svg((int)date('Y') + 2, [], false);
+    assert_true(!str_contains($svg, 'class="today"') && !str_contains($svg, '#d64545'));
 });
