@@ -12,6 +12,7 @@ final class Wheel
     private const R_MONTH_OUT = 490;
     private const R_MONTH_IN = 440;
     private const R_WEEK_IN = 418;
+    private const PAD = 32; // margen uden om hjulet til skyggen (viewBox går fra -PAD til SIZE + PAD)
     private const TODAY = '#d64545'; // farven for "i dag" og den aktuelle uge
     private const R_LANES_OUT = 410;
     private const R_LANES_IN = 150;
@@ -51,9 +52,13 @@ final class Wheel
         $C = self::C;
 
         $o = [];
-        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %1$d %1$d" width="%1$d" height="%1$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %2$s">', self::SIZE, h($label));
-        $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern></defs>';
-        $o[] = sprintf('<rect width="%1$d" height="%1$d" fill="#ffffff"/>', self::SIZE);
+        $full = self::SIZE + 2 * self::PAD;
+        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label));
+        $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern>'
+            // Grå skygge under hjulets yderkant, så hjulet ser ud til at svæve over baggrunden
+            . '<filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/></filter></defs>';
+        $o[] = sprintf('<rect x="%1$d" y="%1$d" width="%2$d" height="%2$d" fill="#ffffff"/>', -self::PAD, $full);
+        $o[] = sprintf('<circle class="wheel-shadow" cx="%1$d" cy="%1$d" r="%2$d" fill="#ffffff" filter="url(#wheel-shadow)"/>', $C, self::R_MONTH_OUT);
 
         // Månedsring. Går hjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 27"
         $withYear = Settings::startMonth() !== 1;

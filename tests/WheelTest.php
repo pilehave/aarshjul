@@ -126,3 +126,16 @@ test('Ingen markering af i dag i et hjul, der ikke indeholder i dag', function (
     $svg = Wheel::svg((int)date('Y') + 2, [], false);
     assert_true(!str_contains($svg, 'class="today"') && !str_contains($svg, '#d64545'));
 });
+
+// --- Skygge ---
+
+test('Hjulet har en skygge, og viewBox giver plads til den', function () {
+    $svg = Wheel::svg(2026, [], false);
+    assert_true((bool)preg_match('~<filter id="wheel-shadow"[^>]*><feDropShadow dx="0" dy="(\d+)" stdDeviation="(\d+)"~', $svg, $f), 'Filteret findes');
+    assert_true((bool)preg_match('~<circle class="wheel-shadow" cx="500" cy="500" r="(\d+)"[^>]*filter="url\(#wheel-shadow\)"~', $svg, $c), 'Cirklen med skygge findes');
+    assert_true((bool)preg_match('~viewBox="(-?\d+) (-?\d+) (\d+) (\d+)"~', $svg, $v));
+    // Skyggen rækker ca. 3 x stdDeviation ud fra kanten (plus forskydningen nedad)
+    $reach = (int)$c[1] + 3 * (int)$f[2] + (int)$f[1];
+    assert_true(500 + $reach <= (int)$v[1] + (int)$v[3], "Skyggen ($reach) går ud over viewBox");
+    assert_true(500 - $reach + (int)$f[1] >= (int)$v[1], 'Skyggen går ud over viewBox foroven');
+});
