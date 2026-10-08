@@ -214,7 +214,11 @@ final class Wheel
         $rings = self::rings($occurrences, $mode, $from, $to);
         $band = $mode === 'person' || ($mode === 'category' && Settings::ringNames()) ? self::RING_NAME_BAND : 0;
         $laneCount = array_sum(array_map(fn($r) => count($r['lanes']), $rings));
-        $laneW = min(44, (self::R_LANES_OUT - self::R_LANES_IN - count($rings) * $band) / max(1, $laneCount));
+        // Faste ringe fylder hele pladsen ind til midtercirklen. Automatisk har en grænse på 44 px, så få baner ikke bliver meget tykke
+        $laneW = (self::R_LANES_OUT - self::R_LANES_IN - count($rings) * $band) / max(1, $laneCount);
+        if ($mode === 'auto') {
+            $laneW = min(44, $laneW);
+        }
         $placed = [];
         $rOuter = self::R_LANES_OUT;
         foreach ($rings as $ri => $ring) {

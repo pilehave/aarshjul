@@ -98,3 +98,18 @@ test('Ringnavne står fire gange i hver ring og kan slås fra for kategorier', f
     assert_same([], $names($svg));
     assert_true(!str_contains($svg, 'class="ring-bg"'), 'Ingen baggrund i automatisk tilstand');
 });
+
+test('Faste ringe fylder hele pladsen ind til midtercirklen, automatisk har en grænse', function () {
+    $occ = [occ_row(1, '2026-03-01', '2026-03-05', 'A'), occ_row(2, '2026-04-01', '2026-04-05', 'B')];
+    // Inderkanten af den inderste bane: rIn = rOut - laneW + 4, hvor rOut = (banens yderkant) - 2
+    $innermost = function (string $svg): float {
+        preg_match_all('~<path d="M[\d.]+ [\d.]+ A([\d.]+) [\d.]+ 0 [01] 1 [\d.]+ [\d.]+ L[\d.]+ [\d.]+ A([\d.]+)[^"]*" fill="#2f6fde"~', $svg, $m);
+        return min(array_map('floatval', $m[2]));
+    };
+    set_setting('ring_mode', 'category');
+    $r = $innermost(Wheel::svg(2026, $occ, false));
+    assert_true($r < 120 + 4, "Inderste begivenhed slutter ved midtercirklen (r=$r)");
+    set_setting('ring_mode', 'auto');
+    $r = $innermost(Wheel::svg(2026, $occ, false));
+    assert_true($r > 300, "Automatisk med én bane er højst 44 px (r=$r)");
+});
