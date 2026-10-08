@@ -98,8 +98,12 @@ final class Wheel
             if ($e - $s < 2) {
                 continue; // en enkelt dag er for smal til et nummer
             }
-            [$tx, $ty] = self::pt($ang(($s + $e) / 2), (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
-            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central">%d</text>', $tx, $ty, $num);
+            // Nummeret følger hjulets runding som månedsnavnene og vendes på den nederste halvdel, så det ikke står på hovedet
+            $a = $ang(($s + $e) / 2);
+            $rot = self::textRotation($a);
+            [$tx, $ty] = self::pt($a, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
+            $o[] = sprintf('<text x="%.1f" y="%.1f" font-size="9" fill="#7a8599" text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d</text>',
+                $tx, $ty, $rot, $tx, $ty, $num);
         }
 
         // Fordel begivenhederne i ringe: serier, der aldrig overlapper hinanden, deler ring
@@ -212,6 +216,16 @@ final class Wheel
     }
 
     /** Tekst langs en bue. Teksten forkortes, så den passer; i nederste halvdel vendes den, så den kan læses. */
+    /**
+     * Rotation (grader med uret) for tekst, der skal stå langs hjulet ved vinklen $deg (0° = øverst).
+     * På den nederste halvdel vendes teksten, så den kan læses, ligesom i label().
+     */
+    public static function textRotation(float $deg): float
+    {
+        $deg = fmod(fmod($deg, 360) + 360, 360);
+        return $deg > 90 && $deg < 270 ? $deg - 180 : ($deg >= 270 ? $deg - 360 : $deg);
+    }
+
     private static function label(float $a1, float $a2, float $r, string $text, float $size, string $fill, string $weight, string $id): string
     {
         $len = deg2rad($a2 - $a1) * $r - 6;

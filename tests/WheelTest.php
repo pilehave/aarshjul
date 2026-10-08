@@ -90,3 +90,22 @@ test('Månedsnavne med årstal, når hjulet går på tværs af to år', function
     $months = wheel_months(2099);
     assert_same(['Oktober 99', 'September 00'], [$months[0], $months[11]], 'Årtusindskiftet');
 });
+
+// --- Ugenumre følger hjulets runding ---
+
+test('Tekst langs hjulet roteres med hjulet og vendes på den nederste halvdel', function () {
+    $cases = [0 => 0.0, 45 => 45.0, 90 => 90.0, 135 => -45.0, 180 => 0.0, 225 => 45.0, 270 => -90.0, 315 => -45.0, 360 => 0.0, -2 => -2.0];
+    foreach ($cases as $deg => $rot) {
+        assert_same($rot, Wheel::textRotation($deg), "$deg°");
+    }
+});
+
+test('Alle ugenumre i hjulet er roteret om deres eget midtpunkt', function () {
+    preg_match_all('~<text x="([\d.]+)" y="([\d.]+)" font-size="9"[^>]*transform="rotate\((-?[\d.]+) ([\d.]+) ([\d.]+)\)"[^>]*>\d+</text>~',
+        Wheel::svg(2026, [], false), $m, PREG_SET_ORDER);
+    assert_same(53, count($m), 'Alle 53 uger i 2026 har en rotation');
+    foreach ($m as [, $x, $y, $rot, $cx, $cy]) {
+        assert_same([$x, $y], [$cx, $cy]);
+        assert_true(abs((float)$rot) <= 90, "Rotation $rot får teksten til at stå på hovedet");
+    }
+});
