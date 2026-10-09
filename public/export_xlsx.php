@@ -3,13 +3,13 @@ declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 require __DIR__ . '/../src/Xlsx.php';
 
-$year = selected_year();
+$period = Period::fromRequest(selected_year(), $_GET['zoom'] ?? null);
 $personId = (int)($_GET['person'] ?? 0) ?: null;
 $categoryId = (int)($_GET['category'] ?? 0) ?: null;
 $onlyMissing = !empty($_GET['missing']);
 
 $rows = [['Startdato', 'Slutdato', 'Titel', 'Beskrivelse', 'Note', 'Note af', 'Gentagelse', 'Personer', 'Afhænger af', 'Klar (forudsætninger opfyldt)', 'Opfyldt', 'Opfyldt af', 'Overskredet', 'Links', 'Filer']];
-foreach (Events::occurrencesForYear($year, $personId, $categoryId, null, $onlyMissing) as $o) {
+foreach (Events::occurrencesBetween($period['from'], $period['to'], $personId, $categoryId, null, $onlyMissing) as $o) {
     $e = $o['event'];
     $rows[] = [
         new DateTimeImmutable($o['date']),
@@ -31,9 +31,9 @@ foreach (Events::occurrencesForYear($year, $personId, $categoryId, null, $onlyMi
     ];
 }
 
-$label = str_replace('/', '-', year_label($year)); // "/" må ikke indgå i et arknavn
+$label = str_replace('/', '-', Period::label($period)); // "/" må ikke indgå i et arknavn
 $data = Xlsx::build("Årshjul $label", $rows, [12, 12, 30, 45, 40, 28, 30, 28, 28, 14, 10, 32, 12, 45, 30]);
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header("Content-Disposition: attachment; filename=\"aarshjul-$label.xlsx\"");
+header("Content-Disposition: attachment; filename=\"aarshjul-" . str_replace(" ", "-", $label) . ".xlsx\"");
 header('Content-Length: ' . strlen($data));
 echo $data;

@@ -20,6 +20,8 @@ final class Wheel
 
     /** Korte forekomster tegnes mindst så mange dage brede, så de kan ses og klikkes på */
     private const MIN_SPAN = 3;
+    /** Ugedagenes forbogstav i dagringen, når der er zoomet ind på en måned (1 = mandag) */
+    private const WEEKDAY_LETTERS = [1 => 'M', 'T', 'O', 'T', 'F', 'L', 'S'];
     /** Højden på navnebåndet yderst i en fast ring (én ring pr. kategori/person) */
     private const RING_NAME_BAND = 12;
     /** Bredden på skyggen ved sammenstødet øverst, hvor årets sidste måned møder den første */
@@ -108,7 +110,8 @@ final class Wheel
 
     /**
      * Hvor i hjulet [$from, $to] en forekomst fra $date til $end tegnes: [første dag, dag efter sidste], talt i dage fra $from.
-     * Forekomsten skæres af ved hjulets kanter. Korte forekomster gøres MIN_SPAN dage brede, dog aldrig ud over kanterne.
+     * Forekomsten skæres af ved hjulets kanter. Korte forekomster gøres MIN_SPAN dage brede i et helt år (i et kvartal eller
+     * en måned tilsvarende færre, mindst 1 dag), dog aldrig ud over kanterne.
      * En forekomst, der er begyndt i hjulet før, tegnes kun med de dage, der ligger i dette hjul (fx 1 dag).
      * @return array{0:int,1:int}
      */
@@ -119,22 +122,30 @@ final class Wheel
         $daysInYear = $day($to) + 1;
         $s = $day(max($date, $from));
         $e = $day(min($end, $to)) + 1;
-        if ($date >= $from && $e - $s < self::MIN_SPAN) {
-            $e = min($daysInYear, $s + self::MIN_SPAN);
-            $s = max(0, $e - self::MIN_SPAN);
+        $min = max(1, (int)round(self::MIN_SPAN * $daysInYear / 365));
+        if ($date >= $from && $e - $s < $min) {
+            $e = min($daysInYear, $s + $min);
+            $s = max(0, $e - $min);
         }
         return [$s, $e];
     }
 
-    public static function svg(int $year, array $occurrences, bool $links = true): string
+    /**
+     * Tegner hjulet for $period (se Period): hele årshjulet for $year, eller et kvartal/en måned, der fylder hele cirklen.
+     * Ved et år og et kvartal viser de ydre ringe måneder og ugenumre, ved en måned uger og dage.
+     */
+    public static function svg(int $year, array $occurrences, bool $links = true, ?array $period = null): string
     {
-        [$from, $to] = year_bounds($year);
+        $period ??= Period::fromRequest($year, null);
+        [$from, $to] = [$period['from'], $period['to']];
         $start = new DateTimeImmutable($from);
         $day = fn(string $ymd) => (int)$start->diff(new DateTimeImmutable($ymd))->format('%r%a'); // dage siden $from
-        $daysInYear = $day($to) + 1;
-        $ang = fn(float $dayIndex) => $dayIndex / $daysInYear * 360.0; // 0° = 1. i startmåneden, øverst, med uret
-        $label = year_label($year);
+        $daysInYear = $day($to) + 1; // dage i perioden (et helt år, et kvartal eller en måned)
+        $ang = fn(float $dayIndex) => $dayIndex / $daysInYear * 360.0; // 0° = periodens første dag, øverst, med uret
+        $label = Period::label($period);
         $C = self::C;
+        $today = date('Y-m-d');
+        $todayInWheel = $today >= $from && $today <= $to;
 
         $o = [];
         $full = self::SIZE + 2 * self::PAD;
@@ -150,23 +161,57 @@ final class Wheel
         $o[] = sprintf('<rect x="%1$d" y="%1$d" width="%2$d" height="%2$d" fill="#ffffff"/>', -self::PAD, $full);
         $o[] = sprintf('<circle class="wheel-shadow" cx="%1$d" cy="%1$d" r="%2$d" fill="#ffffff" filter="url(#wheel-shadow)"/>', $C, self::R_MONTH_OUT);
 
-        // Månedsring. Går hjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 27"
+        // Yderste ring: måneder (år og kvartal) eller uger (måned). Hvert afsnit får også sin sektor i begivenhedsområdet.
+        // Går årshjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 27"
+        $isMonth = $period['kind'] === 'month';
         $withYear = Settings::startMonth() !== 1;
-        for ($i = 0; $i < 12; $i++) {
-            $first = $start->modify("+$i months");
-            $m = (int)$first->format('n');
-            $a1 = $ang($day($first->format('Y-m-d')));
-            $a2 = $ang($day($first->format('Y-m-d')) + (int)$first->format('t'));
+        $segments = []; // [første dag, dag efter sidste, tekst, id]
+        if ($isMonth) {
+            for ($d = $start->modify('-' . ((int)$start->format('N') - 1) . ' days'); $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
+                $segments[] = [max(0, $day($d->format('Y-m-d'))), min($daysInYear, $day($d->format('Y-m-d')) + 7), 'Uge ' . (int)$d->format('W'), 'w' . $d->format('W')];
+            }
+        } else {
+            for ($first = $start->modify('first day of this month'); $first->format('Y-m-d') <= $to; $first = $first->modify('+1 month')) {
+                $m = (int)$first->format('n');
+                $segments[] = [max(0, $day($first->format('Y-m-d'))), min($daysInYear, $day($first->format('Y-m-d')) + (int)$first->format('t')),
+                    ucfirst(MONTHS_DA[$m]) . ($withYear ? ' ' . $first->format('y') : ''), 'm' . $m];
+            }
+        }
+        foreach ($segments as $i => [$s, $e, $text, $id]) {
+            [$a1, $a2] = [$ang($s), $ang($e)];
             $fill = $i % 2 ? '#dce4f2' : '#e9eef7';
             $o[] = sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="2"/>', self::arc($a1, $a2, self::R_MONTH_IN, self::R_MONTH_OUT), $fill);
             $o[] = sprintf('<path d="%s" fill="#fafbfd" stroke="#e3e7ee" stroke-width="1"/>', self::arc($a1, $a2, self::R_LANES_IN, self::R_LANES_OUT));
-            $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, ucfirst(MONTHS_DA[$m]) . ($withYear ? ' ' . $first->format('y') : ''), 20, '#1f2d48', 'bold', 'm' . $m);
+            $o[] = self::label($a1, $a2, (self::R_MONTH_IN + self::R_MONTH_OUT) / 2, $text, 20, '#1f2d48', 'bold', $id);
         }
 
-        // Ugenumre: en streg ved hver mandag og nummeret midt i den del af ugen, der ligger i hjulet.
+        if ($isMonth) {
+            // Dagring ved en måned: dato og ugedagens forbogstav ("8 T"), weekender let grå, også i begivenhedsområdet
+            foreach (range(0, $daysInYear - 1) as $i) {
+                $d = $start->modify("+$i days");
+                [$a1, $a2] = [$ang($i), $ang($i + 1)];
+                if ((int)$d->format('N') >= 6) {
+                    $o[] = sprintf('<path class="weekend" d="%s" fill="#eef1f6"/>', self::arc($a1, $a2, self::R_WEEK_IN, self::R_MONTH_IN));
+                    $o[] = sprintf('<path class="weekend" d="%s" fill="#f1f3f7"/>', self::arc($a1, $a2, self::R_LANES_IN, self::R_LANES_OUT));
+                }
+                if ($i > 0) {
+                    [$x1, $y1] = self::pt($a1, self::R_WEEK_IN);
+                    [$x2, $y2] = self::pt($a1, self::R_MONTH_IN);
+                    $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#a3aec2" stroke-width="1"/>', $x1, $y1, $x2, $y2);
+                }
+                $a = ($a1 + $a2) / 2;
+                $rot = self::textRotation($a);
+                [$tx, $ty] = self::pt($a, (self::R_WEEK_IN + self::R_MONTH_IN) / 2);
+                $style = $d->format('Y-m-d') === $today ? 'fill="' . self::TODAY . '" font-weight="bold"' : 'fill="#46536b" font-weight="600"';
+                $o[] = sprintf('<text class="day" x="%.1f" y="%.1f" font-size="11" %s text-anchor="middle" dominant-baseline="central" transform="rotate(%.1f %.1f %.1f)">%d %s</text>',
+                    $tx, $ty, $style, $rot, $tx, $ty, (int)$d->format('j'), self::WEEKDAY_LETTERS[(int)$d->format('N')]);
+            }
+        }
+
+        // Ugenumre (år og kvartal): en streg ved hver mandag og nummeret midt i den del af ugen, der ligger i hjulet.
         // Starter hjulet midt i en uge, får den delvise første uge også sit nummer (fx uge 31, når 1/8 er en lørdag)
         $weeks = []; // [nummer, første dag, dag efter sidste] (dage siden $from, afskåret til hjulet)
-        for ($d = $start->modify('-' . ((int)$start->format('N') - 1) . ' days'); $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
+        for ($d = $start->modify('-' . ((int)$start->format('N') - 1) . ' days'); !$isMonth && $d->format('Y-m-d') <= $to; $d = $d->modify('+7 days')) {
             $monday = $day($d->format('Y-m-d'));
             if ($monday >= 0) {
                 [$x1, $y1] = self::pt($ang($monday), self::R_WEEK_IN);
@@ -178,7 +223,7 @@ final class Wheel
         // Har ugerne i hver ende samme nummer (fx uge 31 i både 2028 og 2029, når hjulet starter 1/8 2028),
         // mødes de øverst og ligner én uge. Nummeret vises så kun én gang: midt over sammenstødet, hvis begge
         // er delvise, ellers ved den hele uge (fx uge 1 i 2024, hvor 30.-31/12 også er uge 1)
-        [$first, $last] = [$weeks[0], $weeks[count($weeks) - 1]];
+        [$first, $last] = [$weeks[0] ?? null, $weeks[count($weeks) - 1] ?? null];
         $len = fn(array $w) => $w[2] - $w[1];
         if (count($weeks) > 1 && $first[0] === $last[0]) {
             if ($len($first) < 7 && $len($last) < 7) {
@@ -191,8 +236,6 @@ final class Wheel
             }
         }
         // Den aktuelle uge vises med fed rød skrift (se også "I dag" nedenfor)
-        $today = date('Y-m-d');
-        $todayInWheel = $today >= $from && $today <= $to;
         $thisWeek = $todayInWheel ? (int)date('W') : null;
         foreach ($weeks as [$num, $s, $e]) {
             if ($e - $s < 2) {
@@ -248,9 +291,9 @@ final class Wheel
             $rOuter = $rInner;
         }
         if ($mode !== 'auto') {
-            // Månedsstregerne igen, så de også ses hen over ringenes baggrund
-            for ($i = 0; $i < 12; $i++) {
-                $a = $ang($day($start->modify("+$i months")->format('Y-m-d')));
+            // Måneds- (eller uge-)stregerne igen, så de også ses hen over ringenes baggrund
+            foreach ($segments as [$s]) {
+                $a = $ang($s);
                 [$x1, $y1] = self::pt($a, self::R_LANES_IN);
                 [$x2, $y2] = self::pt($a, self::R_LANES_OUT);
                 $o[] = sprintf('<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="#ffffff" stroke-opacity="0.7" stroke-width="1.5"/>', $x1, $y1, $x2, $y2);
@@ -322,8 +365,13 @@ final class Wheel
 
         // Midte
         $o[] = sprintf('<circle cx="%1$d" cy="%1$d" r="%2$d" fill="#1f2d48"/>', $C, self::R_LANES_IN - 10);
-        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="%3$d" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%4$s</text>', $C, $C - 8, strlen($label) > 4 ? 44 : 54, h($label));
-        $o[] = sprintf('<text x="%1$d" y="%2$d" font-size="16" fill="#b9c4da" text-anchor="middle">Årshjul</text>', $C, $C + 42);
+        // Ved et helt år årstallet og "Årshjul", ved et kvartal/en måned perioden ("K2", "Oktober") over året
+        $title = Period::title($period);
+        $sub = Period::subtitle($period) ?? 'Årshjul';
+        $len = mb_strlen($title);
+        $size = $len <= 4 ? 54 : min(44, (int)floor(200 / ($len * 0.62)));
+        $o[] = sprintf('<text class="center-title" x="%1$d" y="%2$d" font-size="%3$d" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="central">%4$s</text>', $C, $C - 8, $size, h($title));
+        $o[] = sprintf('<text class="center-sub" x="%1$d" y="%2$d" font-size="%3$d" fill="#b9c4da" text-anchor="middle">%4$s</text>', $C, $C + 42, $period['kind'] === 'year' ? 16 : 20, h($sub));
         $o[] = '</svg>';
         return implode("\n", $o);
     }

@@ -32,6 +32,8 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .toolbar .btn, .filter select { height: 34px; line-height: 20px; }
 .yearnav { display: flex; gap: 10px; align-items: center; }
 .yearnav strong { font-size: 22px; min-width: 3ch; text-align: center; }
+.zoom { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
 .filter { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .filter label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .field-label { color: var(--muted); font-size: 14px; }

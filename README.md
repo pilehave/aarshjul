@@ -103,6 +103,14 @@ med Simply.com i `.env.example`). Opsætningen kan afprøves med:
 docker compose exec web php bin/send-test-mail.php din@adresse.dk
 ```
 
+## Zoom på kvartal og måned
+
+Knapperne "Hele året · K1 · K2 · K3 · K4" ved årstallet zoomer ind på et kvartal, så det fylder hele hjulet. Når et
+kvartal er valgt, vises dets tre måneder som knapper. Kvartalerne følger startmåneden, så med august som start er K1
+august–oktober. Pilene går til forrige/næste periode (år, kvartal eller måned), også hen over årsskiftet.
+Ved en måned viser hjulet uger og dage med ugedag. Zoomet står i adressen (`?zoom=q2` eller `?zoom=2026-10`), og listen
+og eksporten (Excel, PNG, PDF og SVG) følger det.
+
 ## Ringe i hjulet
 
 Under Indstillinger vælges, hvordan begivenhederne fordeles i hjulets ringe:

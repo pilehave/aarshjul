@@ -15,6 +15,7 @@ session_start();
 $GLOBALS['config'] = require __DIR__ . '/../config.php';
 
 require __DIR__ . '/Settings.php';
+require __DIR__ . '/Period.php';
 require __DIR__ . '/Recurrence.php';
 require __DIR__ . '/Categories.php';
 require __DIR__ . '/People.php';

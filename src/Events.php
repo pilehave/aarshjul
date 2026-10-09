@@ -231,19 +231,26 @@ final class Events
         return $res;
     }
 
+    /** Alle forekomster i årshjulet for $year (se year_bounds). Se occurrencesBetween. */
+    public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null, bool $onlyMissing = false): array
+    {
+        [$from, $to] = year_bounds($year);
+        return self::occurrencesBetween($from, $to, $personId, $categoryId, $all, $onlyMissing);
+    }
+
     /**
-     * Alle forekomster i årshjulet for $year (se year_bounds), sorteret efter dato, med status for flueben og afhængigheder.
+     * Alle forekomster, der overlapper perioden [$from, $to] (et årshjul, et kvartal eller en måned, se Period),
+     * sorteret efter dato, med status for flueben og afhængigheder.
      * En forekomst er overskredet, når slutdatoen er passeret uden flueben. $onlyMissing udelader dem med flueben.
      * Hver forekomst har også sin egen note, links og filer (se occurrenceData).
      */
-    public static function occurrencesForYear(int $year, ?int $personId = null, ?int $categoryId = null, ?array $all = null, bool $onlyMissing = false): array
+    public static function occurrencesBetween(string $from, string $to, ?int $personId = null, ?int $categoryId = null, ?array $all = null, bool $onlyMissing = false): array
     {
         $all ??= self::all();
         $done = self::completions();
         $extra = self::occurrenceData();
         $today = date('Y-m-d');
         $rows = [];
-        [$from, $to] = year_bounds($year);
         foreach ($all as $e) {
             if ($personId && !in_array($personId, array_column($e['people'], 'id'), true)) {
                 continue;

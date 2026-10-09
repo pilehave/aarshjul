@@ -6,7 +6,13 @@ declare(strict_types=1);
 /** Ugenumrene i hjulet i den rækkefølge, de tegnes */
 function wheel_weeks(int $year): array
 {
-    preg_match_all('~<text [^>]*font-size="11" fill="#[0-9a-f]{6}"[^>]*>(\d+)</text>~', Wheel::svg($year, [], false), $m);
+    return wheel_weeks_svg(Wheel::svg($year, [], false));
+}
+
+/** Ugenumrene i en færdig SVG */
+function wheel_weeks_svg(string $svg): array
+{
+    preg_match_all('~<text [^>]*font-size="11" fill="#[0-9a-f]{6}"[^>]*>(\d+)</text>~', $svg, $m);
     return array_map('intval', $m[1]);
 }
 

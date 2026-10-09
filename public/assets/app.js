@@ -323,7 +323,7 @@
   var wheel = document.getElementById('wheel');
   if (!wheel) return;
   var year = wheel.getAttribute('data-year');
-  var fileYear = year.replace('/', '-');
+  var fileYear = year.replace(/[\/\s]+/g, '-');
 
   function wheelToCanvas(scale) {
     var svg = wheel.querySelector('svg').cloneNode(true);

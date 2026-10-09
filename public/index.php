@@ -3,16 +3,18 @@ declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 require __DIR__ . '/../src/layout.php';
 
-$year = selected_year();
+// Perioden: hele årshjulet, et kvartal (?zoom=q2) eller en måned (?zoom=2026-10). Hjul, liste og eksport følger den
+$period = Period::fromRequest(selected_year(), $_GET['zoom'] ?? null);
+$year = $period['year'];
 $personId = (int)($_GET['person'] ?? 0) ?: null;
 $categoryId = (int)($_GET['category'] ?? 0) ?: null;
 $onlyMissing = !empty($_GET['missing']);
 $all = Events::all();
-$occ = Events::occurrencesForYear($year, $personId, $categoryId, $all, $onlyMissing);
+$occ = Events::occurrencesBetween($period['from'], $period['to'], $personId, $categoryId, $all, $onlyMissing);
 $occ = array_map(fn(array $o) => $o + ['dependents' => Events::dependents($o['event'], $o['date'], $all)], $occ);
 $people = Events::people();
 $categories = Categories::all();
-$label = year_label($year);
+$label = Period::label($period);
 $crossesYear = Settings::startMonth() !== 1;
 $isAdmin = Auth::can('admin');          // må redigere begivenheder, kategorier, personer, indstillinger og brugere
 $canEdit = Auth::can('contributor');    // må sætte flueben og skrive noter på forekomster
@@ -57,17 +59,42 @@ $details = array_map(fn(array $o) => [
     'edit'        => $isAdmin ? 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year : null,
 ], $occ);
 // Nuværende filtre med $p som ændringer (null fjerner en parameter)
-$q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null]));
+$q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'zoom' => $period['zoom'], 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null]));
+// Adressen til en anden periode (beholder filtrene)
+$to = fn(array $p) => $q(['year' => $p['year'], 'zoom' => $p['zoom']]);
+[$prev, $next] = [Period::step($period, -1), Period::step($period, 1)];
+// Zoomknapperne: hele året og de fire kvartaler, og det valgte kvartals tre måneder
+$zoomButtons = [[Period::fromRequest($year, null), 'Hele året']];
+foreach (range(1, 4) as $qn) {
+    $zoomButtons[] = [Period::quarter($year, $qn), 'K' . $qn];
+}
+$monthButtons = $period['quarter'] ? Period::monthsOfQuarter($year, $period['quarter']) : [];
 
 page_header("Årshjul $label");
 ?>
 <div class="toolbar">
  <div class="toolbar-row">
   <div class="yearnav">
-    <a class="btn" href="<?= h($q(['year' => $year - 1])) ?>">‹ <?= h(year_label($year - 1)) ?></a>
+    <a class="btn" href="<?= h($to($prev)) ?>">‹ <?= h(Period::label($prev)) ?></a>
     <strong><?= h($label) ?></strong>
-    <a class="btn" href="<?= h($q(['year' => $year + 1])) ?>"><?= h(year_label($year + 1)) ?> ›</a>
+    <a class="btn" href="<?= h($to($next)) ?>"><?= h(Period::label($next)) ?> ›</a>
   </div>
+  <nav class="zoom" aria-label="Zoom">
+    <div class="btn-group">
+      <?php foreach ($zoomButtons as [$zp, $text]): ?>
+        <a class="btn <?= $zp['zoom'] === $period['zoom'] || ($zp['quarter'] && $zp['quarter'] === $period['quarter']) ? 'active' : '' ?>"
+          href="<?= h($to($zp)) ?>" <?= $zp['zoom'] === $period['zoom'] ? 'aria-current="page"' : '' ?>><?= h($text) ?></a>
+      <?php endforeach; ?>
+    </div>
+    <?php if ($monthButtons): ?>
+      <div class="btn-group">
+        <?php foreach ($monthButtons as $mp): ?>
+          <a class="btn <?= $mp['zoom'] === $period['zoom'] ? 'active' : '' ?>" href="<?= h($to($mp)) ?>"
+            <?= $mp['zoom'] === $period['zoom'] ? 'aria-current="page"' : '' ?>><?= h(Period::title($mp)) ?></a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </nav>
   <div class="spacer"></div>
   <?php if ($isAdmin): ?>
   <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
@@ -82,6 +109,7 @@ page_header("Årshjul $label");
  <div class="toolbar-row">
   <form method="get" class="filter">
     <input type="hidden" name="year" value="<?= $year ?>">
+    <?php if ($period['zoom']): ?><input type="hidden" name="zoom" value="<?= h($period['zoom']) ?>"><?php endif; ?>
     <label><span class="field-label">Person</span>
       <select name="person" onchange="this.form.submit()">
         <option value="">Alle</option>
@@ -126,7 +154,7 @@ page_header("Årshjul $label");
 </script>
 <div class="layout">
   <section class="wheel" id="wheel" data-year="<?= h($label) ?>">
-    <?= Wheel::svg($year, $occ) ?>
+    <?= Wheel::svg($year, $occ, true, $period) ?>
     <p class="legend">
       <span class="lg done"></span> Opfyldt
       <span class="lg blocked"></span> Venter på forudsætning
