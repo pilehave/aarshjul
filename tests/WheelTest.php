@@ -90,11 +90,11 @@ test('Månedsnavne uden årstal, når hjulet starter i januar', function () {
 
 test('Månedsnavne med årstal, når hjulet går på tværs af to år', function () {
     set_start_month(8);
-    assert_same(['August 27', 'September 27', 'Oktober 27', 'November 27', 'December 27', 'Januar 28', 'Februar 28',
-        'Marts 28', 'April 28', 'Maj 28', 'Juni 28', 'Juli 28'], wheel_months(2027));
+    assert_same(['August 2027', 'September 2027', 'Oktober 2027', 'November 2027', 'December 2027', 'Januar 2028', 'Februar 2028',
+        'Marts 2028', 'April 2028', 'Maj 2028', 'Juni 2028', 'Juli 2028'], wheel_months(2027));
     set_start_month(10);
     $months = wheel_months(2099);
-    assert_same(['Oktober 99', 'September 00'], [$months[0], $months[11]], 'Årtusindskiftet');
+    assert_same(['Oktober 2099', 'September 2100'], [$months[0], $months[11]], 'Århundredskiftet');
 });
 
 // --- Ugenumre følger hjulets runding ---

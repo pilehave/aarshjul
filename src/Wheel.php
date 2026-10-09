@@ -162,7 +162,7 @@ final class Wheel
         $o[] = sprintf('<circle class="wheel-shadow" cx="%1$d" cy="%1$d" r="%2$d" fill="#ffffff" filter="url(#wheel-shadow)"/>', $C, self::R_MONTH_OUT);
 
         // Yderste ring: måneder (år og kvartal) eller uger (måned). Hvert afsnit får også sin sektor i begivenhedsområdet.
-        // Går årshjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 27"
+        // Går årshjulet på tværs af to kalenderår, får hver måned årstallet med, fx "August 2027"
         $isMonth = $period['kind'] === 'month';
         $withYear = Settings::startMonth() !== 1;
         $segments = []; // [første dag, dag efter sidste, tekst, id]
@@ -174,7 +174,7 @@ final class Wheel
             for ($first = $start->modify('first day of this month'); $first->format('Y-m-d') <= $to; $first = $first->modify('+1 month')) {
                 $m = (int)$first->format('n');
                 $segments[] = [max(0, $day($first->format('Y-m-d'))), min($daysInYear, $day($first->format('Y-m-d')) + (int)$first->format('t')),
-                    ucfirst(MONTHS_DA[$m]) . ($withYear ? ' ' . $first->format('y') : ''), 'm' . $m];
+                    ucfirst(MONTHS_DA[$m]) . ($withYear ? ' ' . $first->format('Y') : ''), 'm' . $m];
             }
         }
         foreach ($segments as $i => [$s, $e, $text, $id]) {

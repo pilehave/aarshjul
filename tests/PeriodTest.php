@@ -67,7 +67,7 @@ test('Hjulet for et kvartal viser tre måneder og deres ugenumre', function () {
     set_start_month(8);
     $svg = Wheel::svg(2026, [], false, Period::quarter(2026, 1));
     preg_match_all('~<textPath href="#p-m\d+"[^>]*>([^<]*)</textPath>~', $svg, $m);
-    assert_same(['August 26', 'September 26', 'Oktober 26'], $m[1]);
+    assert_same(['August 2026', 'September 2026', 'Oktober 2026'], $m[1]);
     assert_same([...range(31, 44)], wheel_weeks_svg($svg));
 });
 
