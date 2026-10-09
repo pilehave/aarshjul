@@ -23,6 +23,13 @@ function page_header(string $title): void
 <header class="topbar">
   <a class="brand" href="index.php">◔ Årshjul</a>
 <?php if ($user = Auth::user()): ?>
+  <?php if (Auth::can('admin')): $y = selected_year(); $page = basename($_SERVER['SCRIPT_NAME'] ?? ''); ?>
+  <nav class="adminnav" aria-label="Administration">
+    <?php foreach (['categories.php' => 'Kategorier', 'people.php' => 'Personer', 'users.php' => 'Brugere', 'settings.php' => 'Indstillinger'] as $file => $text): ?>
+      <a href="<?= h("$file?year=$y") ?>" <?= $page === $file ? 'aria-current="page"' : '' ?>><?= h($text) ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <?php endif; ?>
   <form method="post" action="logout.php" class="userbox">
     <?= csrf_field() ?>
     <a href="account.php" title="<?= h($user['email'] . ' · ' . Auth::ROLES[$user['role']]) ?>"><?= h($user['name']) ?></a>

@@ -75,9 +75,9 @@ page_header("Årshjul $label");
 <div class="toolbar">
  <div class="toolbar-row">
   <div class="yearnav">
-    <a class="btn" href="<?= h($to($prev)) ?>">‹ <?= h(Period::label($prev)) ?></a>
+    <a class="btn icon" href="<?= h($to($prev)) ?>" title="<?= h(Period::label($prev)) ?>" aria-label="Forrige: <?= h(Period::label($prev)) ?>">‹</a>
     <strong><?= h($label) ?></strong>
-    <a class="btn" href="<?= h($to($next)) ?>"><?= h(Period::label($next)) ?> ›</a>
+    <a class="btn icon" href="<?= h($to($next)) ?>" title="<?= h(Period::label($next)) ?>" aria-label="Næste: <?= h(Period::label($next)) ?>">›</a>
   </div>
   <nav class="zoom" aria-label="Zoom">
     <div class="btn-group">
@@ -87,23 +87,20 @@ page_header("Årshjul $label");
       <?php endforeach; ?>
     </div>
     <?php if ($monthButtons): ?>
-      <div class="btn-group">
+      <div class="btn-group zoom-months">
         <?php foreach ($monthButtons as $mp): ?>
           <a class="btn <?= $mp['zoom'] === $period['zoom'] ? 'active' : '' ?>" href="<?= h($to($mp)) ?>"
             <?= $mp['zoom'] === $period['zoom'] ? 'aria-current="page"' : '' ?>><?= h(Period::title($mp)) ?></a>
         <?php endforeach; ?>
       </div>
+    <?php else: ?>
+      <!-- Usynlig plads til månedsknapperne, så knapperne ombrydes ens i alle visninger -->
+      <div class="btn-group zoom-months placeholder" aria-hidden="true"><span class="btn"></span><span class="btn"></span><span class="btn"></span></div>
     <?php endif; ?>
   </nav>
   <div class="spacer"></div>
   <?php if ($isAdmin): ?>
   <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
-  <a class="btn" href="categories.php?year=<?= $year ?>">Kategorier</a>
-  <a class="btn" href="people.php?year=<?= $year ?>">Personer</a>
-  <a class="btn" href="users.php?year=<?= $year ?>">Brugere</a>
-  <a class="btn icon" href="settings.php?year=<?= $year ?>" title="Indstillinger" aria-label="Indstillinger">
-    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </a>
   <?php endif; ?>
  </div>
  <div class="toolbar-row">
@@ -135,16 +132,6 @@ page_header("Årshjul $label");
     </label>
   </form>
   <button class="btn" type="button" id="toggle-list" aria-controls="event-list" aria-expanded="true">Skjul begivenheder</button>
-  <div class="spacer"></div>
-  <div class="export">
-    <span class="field-label">Eksportér</span>
-    <div class="btn-group">
-      <a class="btn" href="export_xlsx.php<?= h($q([])) ?>">Excel</a>
-      <button class="btn" type="button" data-export="png">PNG</button>
-      <button class="btn" type="button" data-export="pdf">PDF</button>
-      <a class="btn" href="wheel_svg.php<?= h($q(['download' => 1])) ?>">SVG</a>
-    </div>
-  </div>
  </div>
 </div>
 
@@ -154,6 +141,12 @@ page_header("Årshjul $label");
 </script>
 <div class="layout">
   <section class="wheel" id="wheel" data-year="<?= h($label) ?>">
+    <div class="wheel-export btn-group" role="group" aria-label="Eksportér">
+      <a class="btn" href="export_xlsx.php<?= h($q([])) ?>" title="Eksportér listen til Excel">Excel</a>
+      <button class="btn" type="button" data-export="png" title="Eksportér hjulet som billede">PNG</button>
+      <button class="btn" type="button" data-export="pdf" title="Eksportér hjul og liste som PDF">PDF</button>
+      <a class="btn" href="wheel_svg.php<?= h($q(['download' => 1])) ?>" title="Eksportér hjulet som SVG">SVG</a>
+    </div>
     <?= Wheel::svg($year, $occ, true, $period) ?>
     <p class="legend">
       <span class="lg done"></span> Opfyldt

@@ -7,6 +7,10 @@ body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, 
 a { color: var(--primary); }
 .topbar { background: #e30613; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
 .brand { color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; }
+.adminnav { margin-left: auto; display: flex; gap: 4px; }
+.adminnav a { color: #fff; text-decoration: none; font-size: 14px; padding: 4px 10px; border-radius: 6px; }
+.adminnav a:hover, .adminnav a[aria-current] { background: rgba(255, 255, 255, .18); }
+.adminnav + .userbox { margin-left: 16px; padding-left: 16px; border-left: 1px solid rgba(255, 255, 255, .35); }
 .userbox { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
 .userbox a { color: #fff; }
 .login-form { max-width: 380px; margin: 40px auto 0; }
@@ -29,15 +33,19 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 
 .toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.toolbar .btn, .filter select { height: 34px; line-height: 20px; }
-.yearnav { display: flex; gap: 10px; align-items: center; }
-.yearnav strong { font-size: 22px; min-width: 3ch; text-align: center; }
-.zoom { display: flex; flex-wrap: wrap; gap: 8px; }
+.toolbar .btn, .filter select, .wheel-export .btn { height: 30px; line-height: 18px; font-size: 14px; padding: 5px 10px; }
+.toolbar .btn.icon { width: 30px; padding: 0; font-size: 18px; }
+.yearnav { display: flex; gap: 6px; align-items: center; }
+/* Fast bredde til den længste titel ("September 2026"), så knapperne efter den står samme sted i alle visninger */
+.yearnav strong { font-size: 20px; width: 9.6em; text-align: center; white-space: nowrap; }
+.zoom { display: flex; gap: 8px; }
+.zoom-months .btn { width: 6.8em; text-align: center; }
+.zoom-months.placeholder { visibility: hidden; }
 .btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
 .filter { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
 .filter label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .field-label { color: var(--muted); font-size: 14px; }
-.filter select { min-width: 160px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
+.filter select { min-width: 150px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
 .filter select:hover { border-color: #b8c2d3; }
 .spacer { flex: 1; }
 .export { display: flex; gap: 8px; align-items: center; }
@@ -54,9 +62,11 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .list-hidden main { max-width: none; }
 .list-hidden .layout { grid-template-columns: 1fr; }
 .list-hidden #event-list { display: none; }
-.list-hidden .wheel { position: static; }
+.list-hidden .wheel { position: relative; }
 .list-hidden .wheel svg { width: min(100%, max(480px, calc(100vh - 190px))); margin: 0 auto; }
 .wheel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; position: sticky; top: 12px; }
+.wheel-export { position: absolute; top: 12px; right: 12px; z-index: 1; }
+.wheel-export .btn { font-size: 13px; padding: 5px 9px; }
 .wheel svg { width: 100%; height: auto; display: block; }
 .wheel a path:first-of-type { cursor: pointer; }
 .wheel a:hover > g { filter: brightness(1.1); }
@@ -190,7 +200,7 @@ ul.plain li { padding: 3px 0; }
 .delete-form { margin-top: 24px; max-width: 860px; text-align: right; }
 
 @media print {
-  .topbar, .toolbar, .check, .legend { display: none; }
+  .topbar, .toolbar, .check, .legend, .wheel-export { display: none; }
   .layout { display: block; }
   .wheel { position: static; border: 0; page-break-after: always; }
   .list { border: 0; }
