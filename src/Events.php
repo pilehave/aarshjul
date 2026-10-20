@@ -305,6 +305,8 @@ final class Events
 
     /**
      * Validerer og gemmer en begivenhed fra et formular-array. Returnerer [id, fejl[]].
+     * copy_file[] er id'er på filer fra en anden begivenhed, der kopieres til denne (se event.php?copy=).
+     * Kaldes den inde i en åben transaktion (se Template::import), bruges den, og databasefejl kastes videre.
      */
     public static function save(?int $id, array $in, array $uploads): array
     {
@@ -312,6 +314,8 @@ final class Events
         $title = trim((string)($in['title'] ?? ''));
         if ($title === '') {
             $errors[] = 'Titel skal udfyldes.';
+        } elseif (mb_strlen($title) > 200) {
+            $errors[] = 'Titlen må højst være 200 tegn.';
         }
         $startDate = (string)($in['start_date'] ?? '');
         if (!DateTimeImmutable::createFromFormat('!Y-m-d', $startDate)) {
@@ -381,13 +385,22 @@ final class Events
 
         // Filer: tjek før vi skriver noget
         $newFiles = self::parseUploads($uploads, $errors);
+        $copyFiles = [];
+        if ($copyIds = array_map('intval', (array)($in['copy_file'] ?? []))) {
+            $st = db()->prepare('SELECT * FROM event_files WHERE id IN (' . implode(',', array_fill(0, count($copyIds), '?')) . ')');
+            $st->execute($copyIds);
+            $copyFiles = $st->fetchAll();
+        }
 
         if ($errors) {
             return [$id, $errors];
         }
 
         $pdo = db();
-        $pdo->beginTransaction();
+        $ownTransaction = !$pdo->inTransaction();
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
         try {
             $vals = [$title, trim((string)($in['description'] ?? '')) ?: null, $categoryId, $startDate, $endDate,
                 $duration, $rec, $interval, $ruleMonth, $ruleWeekday, $ruleNth];
@@ -431,9 +444,17 @@ final class Events
                 [$stored, $mime] = self::storeUpload($f);
                 $ins->execute([$id, $f['name'], $stored, $mime, $f['size']]);
             }
+            foreach ($copyFiles as $f) {
+                $ins->execute([$id, $f['original_name'], self::copyStored($f['stored_name']), $f['mime_type'], $f['size_bytes']]);
+            }
 
-            $pdo->commit();
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
         } catch (Throwable $t) {
+            if (!$ownTransaction) {
+                throw $t;
+            }
             $pdo->rollBack();
             return [$id, ['Kunne ikke gemme: ' . $t->getMessage()]];
         }
@@ -503,7 +524,12 @@ final class Events
                 $errors[] = 'Ugyldigt link: ' . $url . ' (skal starte med http:// eller https://)';
                 continue;
             }
-            $links[] = ['url' => $url, 'label' => trim((string)($in['link_label'][$i] ?? '')) ?: null];
+            $label = trim((string)($in['link_label'][$i] ?? '')) ?: null;
+            if (strlen($url) > 2000 || ($label !== null && mb_strlen($label) > 200)) {
+                $errors[] = 'Linket ' . mb_substr($url, 0, 80) . ' er for langt (højst 2.000 tegn og 200 tegn tekst).';
+                continue;
+            }
+            $links[] = ['url' => $url, 'label' => $label];
         }
         return $links;
     }
@@ -545,5 +571,16 @@ final class Events
             throw new RuntimeException('Kunne ikke gemme filen ' . $f['name']);
         }
         return [$stored, (new finfo(FILEINFO_MIME_TYPE))->file("$dir/$stored") ?: 'application/octet-stream'];
+    }
+
+    /** Kopierer en gemt fil i upload-mappen til et nyt tilfældigt navn, så kopien kan slettes for sig. @return string det nye navn */
+    private static function copyStored(string $stored): string
+    {
+        $dir = config('upload_dir');
+        $new = bin2hex(random_bytes(16));
+        if (!copy("$dir/$stored", "$dir/$new")) {
+            throw new RuntimeException('Kunne ikke kopiere filen ' . $stored);
+        }
+        return $new;
     }
 }

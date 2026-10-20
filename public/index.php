@@ -57,6 +57,7 @@ $details = array_map(fn(array $o) => [
         'by' => Events::uploadedText($f), 'delete' => $canDeleteFile($f)], $o['files']),
     'blocked'     => $o['blocked'],
     'edit'        => $isAdmin ? 'event.php?id=' . (int)$o['event']['id'] . '&year=' . $year : null,
+    'copy'        => $isAdmin ? 'event.php?copy=' . (int)$o['event']['id'] . '&year=' . $year : null,
 ], $occ);
 // Nuværende filtre med $p som ændringer (null fjerner en parameter)
 $q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'zoom' => $period['zoom'], 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null]));
@@ -284,6 +285,7 @@ page_header("Årshjul $label");
   </form>
   <div class="actions">
     <a class="btn primary" data-f="edit" href="#">Redigér begivenhed</a>
+    <a class="btn" data-f="copy" href="#">Kopiér</a>
     <button type="button" class="btn" data-close>Luk</button>
   </div>
  </div>

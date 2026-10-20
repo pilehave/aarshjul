@@ -20,6 +20,7 @@ require __DIR__ . '/Recurrence.php';
 require __DIR__ . '/Categories.php';
 require __DIR__ . '/People.php';
 require __DIR__ . '/Events.php';
+require __DIR__ . '/Template.php';
 require __DIR__ . '/Wheel.php';
 require __DIR__ . '/Mailer.php';
 require __DIR__ . '/Auth.php';

@@ -6,12 +6,14 @@ require_role('admin');
 
 $year = selected_year();
 $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0) ?: null;
+// ?copy=<id> åbner en ny begivenhed udfyldt ud fra en eksisterende (uden filer og flueben)
+$copyId = $id ? null : ((int)($_GET['copy'] ?? $_POST['copy'] ?? 0) ?: null);
 $all = Events::all();
 $categories = Categories::all();
 $people = People::all();
 $errors = [];
 
-if ($id && !isset($all[$id])) {
+if (($id && !isset($all[$id])) || ($copyId && !isset($all[$copyId]))) {
     http_response_code(404);
     exit('Begivenheden findes ikke.');
 }
@@ -31,11 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Formularværdier: indsendte værdier ved fejl, ellers fra databasen, ellers standard
-$e = $id ? $all[$id] : [
+$e = $id ? $all[$id] : ($copyId ? ['title' => $all[$copyId]['title'] . ' (kopi)', 'files' => []] + $all[$copyId] : [
     'title' => '', 'description' => '', 'category_id' => '', 'start_date' => year_bounds($year)[0],
     'end_date' => '', 'duration_days' => 1, 'recurrence' => 'none', 'rec_interval' => 1,
     'rule_month' => null, 'rule_weekday' => 1, 'rule_nth' => 1, 'people' => [], 'links' => [], 'files' => [], 'depends_on' => [],
-];
+]);
 if ($errors) {
     $p = $_POST;
     $e = array_merge($e, array_intersect_key($p, array_flip(['title', 'description', 'category_id', 'start_date', 'end_date',
@@ -52,13 +54,18 @@ if ($periodEnd === '' && $periodStart) {
     $periodEnd = $periodStart->modify('+' . (max(1, (int)$e['duration_days']) - 1) . ' days')->format('Y-m-d');
 }
 $links = $e['links'] ?: [['url' => '', 'label' => '']];
+$copyFiles = $copyId ? $all[$copyId]['files'] : [];
+$copyChecked = array_map('intval', (array)($errors ? $_POST['copy_file'] ?? [] : []));
 $nextDates = $id ? Recurrence::occurrences($all[$id], date('Y-m-d'), (new DateTimeImmutable('+3 years'))->format('Y-m-d')) : [];
 $dependents = $id ? array_filter($all, fn($x) => in_array($id, $x['depends_on'], true)) : [];
 
-page_header($id ? $e['title'] : 'Ny begivenhed');
+page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] : 'Ny begivenhed'));
 ?>
 <p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
-<h1><?= $id ? 'Rediger: ' . h($e['title']) : 'Ny begivenhed' ?></h1>
+<h1><?= $id ? 'Rediger: ' . h($e['title']) : ($copyId ? 'Kopi af ' . h($all[$copyId]['title']) : 'Ny begivenhed') ?></h1>
+<?php if ($copyId): ?>
+  <p class="muted">Formularen er udfyldt ud fra "<?= h($all[$copyId]['title']) ?>". Originalen ændres ikke, og flueben og noter kopieres ikke.</p>
+<?php endif; ?>
 
 <?php if ($errors): ?>
   <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
@@ -67,6 +74,7 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
 <form method="post" enctype="multipart/form-data" class="event-form">
   <?= csrf_field() ?>
   <?php if ($id): ?><input type="hidden" name="id" value="<?= $id ?>"><?php endif; ?>
+  <?php if ($copyId): ?><input type="hidden" name="copy" value="<?= $copyId ?>"><?php endif; ?>
 
   <fieldset>
     <legend>Begivenhed</legend>
@@ -206,11 +214,21 @@ page_header($id ? $e['title'] : 'Ny begivenhed');
         <?php endforeach; ?>
       </ul>
     <?php endif; ?>
+    <?php if ($copyFiles): ?>
+      <p class="muted">Filerne fra originalen kopieres kun, hvis du vælger dem:</p>
+      <ul class="plain files">
+        <?php foreach ($copyFiles as $f): ?>
+          <li><label class="inline"><input type="checkbox" name="copy_file[]" value="<?= (int)$f['id'] ?>" <?= in_array((int)$f['id'], $copyChecked, true) ? 'checked' : '' ?>>
+            <?= h($f['original_name']) ?></label> <small>(<?= number_format($f['size_bytes'] / 1024, 0, ',', '.') ?> KB)</small></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
     <label>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
   </fieldset>
 
   <div class="actions">
     <button class="btn primary" type="submit">Gem</button>
+    <?php if ($id): ?><a class="btn" href="event.php?copy=<?= $id ?>&amp;year=<?= $year ?>" title="Opret en ny begivenhed ud fra denne">Kopiér</a><?php endif; ?>
     <a class="btn" href="index.php?year=<?= $year ?>">Annullér</a>
   </div>
 </form>

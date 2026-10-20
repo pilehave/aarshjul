@@ -294,6 +294,8 @@
 
       field('edit').hidden = !d.edit;
       if (d.edit) field('edit').href = d.edit;
+      field('copy').hidden = !d.copy;
+      if (d.copy) field('copy').href = d.copy;
       modal.showModal();
     };
     wheelEl.addEventListener('click', function (ev) {

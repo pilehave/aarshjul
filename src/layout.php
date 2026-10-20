@@ -25,7 +25,7 @@ function page_header(string $title): void
 <?php if ($user = Auth::user()): ?>
   <?php if (Auth::can('admin')): $y = selected_year(); $page = basename($_SERVER['SCRIPT_NAME'] ?? ''); ?>
   <nav class="adminnav" aria-label="Administration">
-    <?php foreach (['categories.php' => 'Kategorier', 'people.php' => 'Personer', 'users.php' => 'Brugere', 'settings.php' => 'Indstillinger'] as $file => $text): ?>
+    <?php foreach (['categories.php' => 'Kategorier', 'people.php' => 'Personer', 'users.php' => 'Brugere', 'import.php' => 'Skabelon', 'settings.php' => 'Indstillinger'] as $file => $text): ?>
       <a href="<?= h("$file?year=$y") ?>" <?= $page === $file ? 'aria-current="page"' : '' ?>><?= h($text) ?></a>
     <?php endforeach; ?>
   </nav>
