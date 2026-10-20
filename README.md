@@ -201,6 +201,5 @@ Sæt varighed til 5 for mandag–fredag eller 7 for hele ugen.
 
 ## Kendte begrænsninger (POC)
 
-- Ingen login eller brugerstyring.
 - Korte begivenheder vises uden tekst i hjulet (titel ses ved mouse-over og i listen).
 - Enkelte forekomster kan ikke flyttes eller aflyses for sig; man retter hele serien.
