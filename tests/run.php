@@ -44,7 +44,6 @@ function assert_true(bool $cond, string $msg = 'Betingelsen er ikke opfyldt'): v
 function set_start_month(int $month): void
 {
     $p = new ReflectionProperty(Settings::class, 'cache');
-    $p->setAccessible(true);
     $p->setValue(null, ['start_month' => (string)$month]);
 }
 
@@ -52,7 +51,6 @@ function set_start_month(int $month): void
 function set_setting(string $name, string $value): void
 {
     $p = new ReflectionProperty(Settings::class, 'cache');
-    $p->setAccessible(true);
     $p->setValue(null, [$name => $value] + ($p->getValue() ?? []));
 }
 

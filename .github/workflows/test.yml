@@ -8,12 +8,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Laveste understøttede version og den version, Docker-miljøet bruger
+        php: ['8.1', '8.5']
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, zip, pdo_mysql, intl
           coverage: none
 

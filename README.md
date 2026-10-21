@@ -13,7 +13,7 @@ docker compose up -d --build
 
 | Tjeneste   | Adresse                 | Bemærkning                                         |
 |------------|-------------------------|----------------------------------------------------|
-| Webapp     | http://localhost:8080   | PHP 8.1 + Apache, webrod `public/`                 |
+| Webapp     | http://localhost:8080   | PHP 8.5.12 + Apache, webrod `public/`              |
 | phpMyAdmin | http://localhost:8081   | Logger automatisk ind som root                     |
 | Mailpit    | http://localhost:8025   | Fanger alle mails under udvikling                  |
 | MariaDB    | `localhost:3306`        | 10.11, data i named volume `db_data`               |

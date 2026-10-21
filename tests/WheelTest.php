@@ -102,7 +102,7 @@ test('Månedsnavne med årstal, når hjulet går på tværs af to år', function
 test('Tekst langs hjulet roteres med hjulet og vendes på den nederste halvdel', function () {
     $cases = [0 => 0.0, 45 => 45.0, 90 => 90.0, 135 => -45.0, 180 => 0.0, 225 => 45.0, 270 => -90.0, 315 => -45.0, 360 => 0.0, -2 => -2.0];
     foreach ($cases as $deg => $rot) {
-        assert_same($rot, Wheel::textRotation($deg), "$deg°");
+        assert_same($rot, Wheel::textRotation($deg), "{$deg}°");
     }
 });
 

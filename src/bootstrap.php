@@ -4,13 +4,16 @@ declare(strict_types=1);
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('Europe/Copenhagen');
 
-ini_set('session.use_strict_mode', '1');
-session_set_cookie_params([
-    'httponly' => true,
-    'samesite' => 'Lax',
-    'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-]);
-session_start();
+// Ingen session i CLI (tests og bin/-scripts); PHP 8.5 advarer ellers om manglende cookies
+if (PHP_SAPI !== 'cli') {
+    ini_set('session.use_strict_mode', '1');
+    session_set_cookie_params([
+        'httponly' => true,
+        'samesite' => 'Lax',
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    ]);
+    session_start();
+}
 
 $GLOBALS['config'] = require __DIR__ . '/../config.php';
 
