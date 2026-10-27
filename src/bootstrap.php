@@ -146,9 +146,15 @@ function period_da(string $from, string $to): string
  */
 function selected_year(): int
 {
-    $current = (int)date('Y') - ((int)date('n') < Settings::startMonth() ? 1 : 0);
+    $current = wheel_year(date('Y-m-d'));
     $y = (int)($_GET['year'] ?? $current);
     return ($y >= 1970 && $y <= 2200) ? $y : $current;
+}
+
+/** Årshjulet, som datoen (Y-m-d) ligger i. Med startmåned august ligger 2027-03-01 i 2026 */
+function wheel_year(string $ymd): int
+{
+    return (int)substr($ymd, 0, 4) - ((int)substr($ymd, 5, 2) < Settings::startMonth() ? 1 : 0);
 }
 
 /** @return array{0:string,1:string} første og sidste dato (Y-m-d) i årshjulet for $year */

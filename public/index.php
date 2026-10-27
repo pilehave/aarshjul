@@ -9,6 +9,8 @@ $year = $period['year'];
 $personId = (int)($_GET['person'] ?? 0) ?: null;
 $categoryId = (int)($_GET['category'] ?? 0) ?: null;
 $onlyMissing = !empty($_GET['missing']);
+// Søgningen filtreres i browseren (app.js), så hjulet kan dæmpe dem, der ikke matcher. Den står i adressen, så den kan deles
+$search = trim((string)($_GET['q'] ?? ''));
 $all = Events::all();
 $occ = Events::occurrencesBetween($period['from'], $period['to'], $personId, $categoryId, $all, $onlyMissing);
 $occ = array_map(fn(array $o) => $o + ['dependents' => Events::dependents($o['event'], $o['date'], $all)], $occ);
@@ -60,7 +62,7 @@ $details = array_map(fn(array $o) => [
     'copy'        => $isAdmin ? 'event.php?copy=' . (int)$o['event']['id'] . '&year=' . $year : null,
 ], $occ);
 // Nuværende filtre med $p som ændringer (null fjerner en parameter)
-$q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'zoom' => $period['zoom'], 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null]));
+$q = fn(array $p) => '?' . http_build_query(array_filter($p + ['year' => $year, 'zoom' => $period['zoom'], 'person' => $personId, 'category' => $categoryId, 'missing' => $onlyMissing ? 1 : null, 'q' => $search ?: null]));
 // Adressen til en anden periode (beholder filtrene)
 $to = fn(array $p) => $q(['year' => $p['year'], 'zoom' => $p['zoom']]);
 [$prev, $next] = [Period::step($period, -1), Period::step($period, 1)];
@@ -105,9 +107,18 @@ page_header("Årshjul $label");
   <?php endif; ?>
  </div>
  <div class="toolbar-row">
+  <!-- Mens man skriver, filtreres listen og hjulet i app.js. Enter søger i alle år på search.php -->
+  <form method="get" action="search.php" class="search" role="search">
+    <input type="hidden" name="year" value="<?= $year ?>">
+    <?php if ($personId): ?><input type="hidden" name="person" value="<?= $personId ?>"><?php endif; ?>
+    <?php if ($categoryId): ?><input type="hidden" name="category" value="<?= $categoryId ?>"><?php endif; ?>
+    <input type="search" name="q" id="search" value="<?= h($search) ?>" placeholder="Søg (/ eller Ctrl+K)" aria-label="Søg i begivenheder" autocomplete="off">
+    <button class="btn" type="submit" title="Find begivenheder i alle år">Søg i alle år</button>
+  </form>
   <form method="get" class="filter">
     <input type="hidden" name="year" value="<?= $year ?>">
     <?php if ($period['zoom']): ?><input type="hidden" name="zoom" value="<?= h($period['zoom']) ?>"><?php endif; ?>
+    <input type="hidden" name="q" id="filter-q" value="<?= h($search) ?>" <?= $search === '' ? 'disabled' : '' ?>>
     <label><span class="field-label">Person</span>
       <select name="person" onchange="this.form.submit()">
         <option value="">Alle</option>
@@ -162,13 +173,14 @@ page_header("Årshjul $label");
     <?php if (!$occ): ?>
       <p class="muted">Ingen begivenheder i <?= h($label) ?>.<?php if ($isAdmin): ?> <a href="event.php?year=<?= $year ?>">Opret den første</a>.<?php endif; ?></p>
     <?php endif; ?>
-    <?php $curMonth = ''; foreach ($occ as $o):
+    <p class="muted" id="search-empty" hidden>Ingen begivenheder i <?= h($label) ?> matcher søgningen. <a href="#" data-search-all>Søg i alle år</a>.</p>
+    <?php $curMonth = ''; foreach ($occ as $k => $o):
       $ev = $o['event'];
       $m = substr($o['date'], 0, 7);
       if ($m !== $curMonth): $curMonth = $m; ?>
         <h2 class="month"><?= ucfirst(MONTHS_DA[(int)substr($m, 5)]) ?><?= $crossesYear ? ' ' . substr($m, 0, 4) : '' ?></h2>
       <?php endif; ?>
-      <article class="occ <?= $o['done'] ? 'is-done' : '' ?> <?= $o['blocked'] ? 'is-blocked' : '' ?> <?= $o['overdue'] ? 'is-overdue' : '' ?>" style="--c: <?= h($ev['color']) ?>">
+      <article data-occ="<?= (int)$k ?>" class="occ <?= $o['done'] ? 'is-done' : '' ?> <?= $o['blocked'] ? 'is-blocked' : '' ?> <?= $o['overdue'] ? 'is-overdue' : '' ?>" style="--c: <?= h($ev['color']) ?>">
         <form method="post" action="action.php" class="check">
           <?= csrf_field() ?>
           <input type="hidden" name="do" value="toggle">
