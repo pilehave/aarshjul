@@ -282,6 +282,47 @@ final class Events
         return $rows;
     }
 
+    /**
+     * Matcher begivenheden søgningen? Hvert ord i $query skal stå et sted i titel, beskrivelse, kategori eller personernes navne,
+     * uanset store og små bogstaver. Samme regel som søgningen i app.js.
+     */
+    public static function matches(array $event, string $query): bool
+    {
+        $hay = implode("\n", [$event['title'], (string)$event['description'], $event['category_name'], ...array_column($event['people'], 'name')]);
+        foreach (preg_split('/\s+/u', trim($query), -1, PREG_SPLIT_NO_EMPTY) as $word) {
+            if (mb_stripos($hay, $word) === false) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Søgning i alle begivenheder uanset år (search.php). Hver række har den næste forekomst inden for 5 år, eller den, der er
+     * i gang på $today (next < $today), eller, hvis der ikke er flere, den seneste (last). Sorteret efter næste forekomst, derefter dem uden, efter titel.
+     * @return list<array{event:array,next:?string,last:?string}>
+     */
+    public static function search(array $all, string $query, ?int $personId, ?int $categoryId, string $today): array
+    {
+        $to = (new DateTimeImmutable($today))->modify('+5 years')->format('Y-m-d');
+        $rows = [];
+        foreach ($all as $e) {
+            if (($personId && !in_array($personId, array_column($e['people'], 'id'), true))
+                || ($categoryId && (int)$e['category_id'] !== $categoryId) || !self::matches($e, $query)) {
+                continue;
+            }
+            $next = Recurrence::occurrences($e, $today, $to)[0] ?? null;
+            $last = null;
+            if ($next === null) {
+                $past = array_filter(Recurrence::occurrences($e, $e['start_date'], $today), fn($d) => $d < $today);
+                $last = $past ? end($past) : null;
+            }
+            $rows[] = ['event' => $e, 'next' => $next, 'last' => $last];
+        }
+        usort($rows, fn($a, $b) => [$a['next'] === null, $a['next'], $a['event']['title']] <=> [$b['next'] === null, $b['next'], $b['event']['title']]);
+        return $rows;
+    }
+
     /** Ville det give en cirkel, hvis $eventId afhænger af $dependsOn? */
     public static function wouldCreateCycle(int $eventId, array $dependsOn, array $all): bool
     {

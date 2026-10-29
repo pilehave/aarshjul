@@ -141,6 +141,10 @@ ved hvert push og pull request.
 
 - **Årshjul** for et valgt år (SVG), med månedsring, ugenumre, "i dag"-markør og filter på person.
   Klik på en begivenhed i hjulet for at redigere den.
+- **Søgning** i titel, beskrivelse, kategori og personer, uanset store og små bogstaver. Mens man skriver i
+  søgefeltet på forsiden (genvej: `/` eller `Ctrl+K`), filtreres listen, og hjulet dæmper det, der ikke matcher.
+  Enter eller "Søg i alle år" viser alle begivenheder, der matcher, med næste forekomst (`search.php`). Søgningen
+  kan kombineres med person og kategori og står i adressen (`?q=…`), så den kan deles som link.
 - **Opret, ret og slet** begivenheder med titel, kategori, beskrivelse, varighed i dage.
 - **Kopiér** en begivenhed med knappen "Kopiér" på redigeringssiden eller i modalen. Formularen åbner som en ny
   begivenhed med det hele udfyldt; filer kopieres kun, hvis man vælger dem, og flueben og noter kopieres aldrig.
@@ -183,7 +187,7 @@ src/Events.php        Databaseadgang, validering, afhængigheder og flueben
 src/Template.php      Skabeloner: eksport og import af begivenheder som JSON
 src/Wheel.php         Tegner hjulet som SVG
 src/Xlsx.php          Minimal .xlsx-skriver
-public/               Webrod: index.php (hjul + liste), event.php (formular), categories.php, people.php, settings.php,
+public/               Webrod: index.php (hjul + liste), search.php (søgning i alle år), event.php (formular), categories.php, people.php, settings.php,
                       action.php (flueben og noter pr. forekomst),
                       import.php + export_json.php (skabelon), download.php (filer), export_xlsx.php, wheel_svg.php, assets/
 storage/uploads/      Uploadede filer

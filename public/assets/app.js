@@ -321,6 +321,78 @@
     });
   }
 
+  // --- Forside: søgning. Mens man skriver, filtreres listen, og hjulet dæmper det, der ikke matcher (samme regel som Events::matches) ---
+  var search = document.getElementById('search');
+  if (search && occData) {
+    var norm = function (s) { return s.toLocaleLowerCase('da'); };
+    var hay = JSON.parse(occData.textContent).map(function (d) {
+      return norm([d.title, d.description, d.category].concat(d.people).join('\n'));
+    });
+    var listItems = document.querySelectorAll('#event-list > .occ[data-occ]');
+    var months = document.querySelectorAll('#event-list > .month');
+    var arcs = document.querySelectorAll('#wheel a[data-occ]');
+    var filterQ = document.getElementById('filter-q');
+    var searchEmpty = document.getElementById('search-empty');
+    // Adressen med søgningen sat eller fjernet
+    var withQ = function (href, q) {
+      var u = new URL(href, location.href);
+      if (q) u.searchParams.set('q', q); else u.searchParams.delete('q');
+      return u;
+    };
+    var applySearch = function () {
+      var q = search.value.trim();
+      var words = norm(q).split(/\s+/).filter(Boolean);
+      var hit = function (k) {
+        var h = hay[k];
+        return h !== undefined && words.every(function (w) { return h.indexOf(w) !== -1; });
+      };
+      var shown = 0;
+      listItems.forEach(function (el) {
+        el.hidden = !hit(el.getAttribute('data-occ'));
+        if (!el.hidden) shown++;
+      });
+      // En måned vises kun, hvis mindst én af dens begivenheder gør
+      months.forEach(function (m) {
+        var any = false;
+        for (var el = m.nextElementSibling; el && !el.classList.contains('month'); el = el.nextElementSibling) {
+          if (el.classList.contains('occ') && !el.hidden) { any = true; break; }
+        }
+        m.hidden = !any;
+      });
+      arcs.forEach(function (a) { a.classList.toggle('is-dim', words.length > 0 && !hit(a.getAttribute('data-occ'))); });
+      searchEmpty.hidden = !words.length || shown > 0 || !listItems.length;
+      // Søgningen står i adressen og følger med, når man skifter periode eller filter
+      var u = withQ(location.href, q);
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+      document.querySelectorAll('a[href^="?"]').forEach(function (a) { a.setAttribute('href', withQ(a.getAttribute('href'), q).search || '?'); });
+      filterQ.value = q;
+      filterQ.disabled = !q;
+      updateDescToggles(); // beskrivelser, der var skjult, kan først måles nu
+    };
+    search.addEventListener('input', applySearch);
+    search.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      if (search.value) { search.value = ''; applySearch(); } else search.blur();
+    });
+    document.addEventListener('click', function (ev) {
+      if (!ev.target.closest('[data-search-all]')) return;
+      ev.preventDefault();
+      search.form.submit();
+    });
+    // Genvej: / eller Ctrl+K sætter fokus i søgefeltet (/ kun, når man ikke skriver i et andet felt)
+    document.addEventListener('keydown', function (ev) {
+      var t = ev.target;
+      var typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+      var slash = ev.key === '/' && !typing && !ev.ctrlKey && !ev.metaKey && !ev.altKey;
+      var ctrlK = (ev.ctrlKey || ev.metaKey) && !ev.altKey && ev.key.toLowerCase() === 'k';
+      if (!(slash || ctrlK) || (modal && modal.open)) return;
+      ev.preventDefault();
+      search.focus();
+      search.select();
+    });
+    if (search.value.trim()) applySearch();
+  }
+
   // --- Eksport ---
   var wheel = document.getElementById('wheel');
   if (!wheel) return;

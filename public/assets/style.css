@@ -48,6 +48,12 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .filter select { min-width: 150px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; }
 .filter select:hover { border-color: #b8c2d3; }
 .spacer { flex: 1; }
+.search { display: flex; gap: 6px; align-items: center; }
+.toolbar .search input[type=search], .filter.search-page input[type=search] { display: inline-block; width: 230px; height: 30px; margin: 0;
+  padding: 0 8px; border-color: var(--line); font-size: 14px; }
+.filter.search-page input[type=search] { width: 320px; }
+.search-page { margin-bottom: 16px; }
+.search-page .btn { height: 30px; padding: 0 12px; font-size: 14px; }
 .export { display: flex; gap: 8px; align-items: center; }
 .btn-group { display: inline-flex; }
 .btn-group .btn { border-radius: 0; margin-left: -1px; }
@@ -70,6 +76,7 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .wheel svg { width: 100%; height: auto; display: block; }
 .wheel a path:first-of-type { cursor: pointer; }
 .wheel a:hover > g { filter: brightness(1.1); }
+.wheel a.is-dim { opacity: .15; } /* matcher ikke søgningen */
 .legend { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; margin: 8px 0 0; flex-wrap: wrap; }
 .lg { display: inline-block; width: 18px; height: 10px; border-radius: 2px; margin-left: 8px; }
 .lg.done { background: var(--primary); opacity: .45; }
