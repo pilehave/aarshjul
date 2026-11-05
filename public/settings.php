@@ -9,7 +9,7 @@ $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_post_csrf();
-    $errors = Settings::saveAll($_POST);
+    $errors = Settings::saveAll($_POST, $_FILES['logo'] ?? []);
     if (!$errors) {
         flash('Indstillingerne er gemt.');
         redirect("settings.php?year=$year");
@@ -19,6 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $startMonth = $errors ? (int)($_POST['start_month'] ?? 1) : Settings::startMonth();
 $ringMode = $errors ? (string)($_POST['ring_mode'] ?? 'auto') : Settings::ringMode();
 $ringNames = $errors ? !empty($_POST['ring_names']) : Settings::ringNames();
+$topbarBg = $errors && Settings::isColor((string)($_POST['topbar_bg'] ?? '')) ? (string)$_POST['topbar_bg'] : Settings::topbarBg();
+$topbarFg = $errors && Settings::isColor((string)($_POST['topbar_fg'] ?? '')) ? (string)$_POST['topbar_fg'] : Settings::topbarFg();
+$topbarText = $errors ? (string)($_POST['topbar_text'] ?? '') : Settings::topbarText();
+// Tomt felt = standardhøjden, så kun en selvvalgt højde vises i feltet
+$logoHeight = $errors ? (string)($_POST['topbar_logo_height'] ?? '') : Settings::get('topbar_logo_height');
+$logo = Settings::topbarLogo();
 
 page_header('Indstillinger');
 ?>
@@ -29,7 +35,7 @@ page_header('Indstillinger');
   <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 
-<form method="post" class="event-form">
+<form method="post" class="event-form" enctype="multipart/form-data">
   <?= csrf_field() ?>
   <fieldset>
     <legend>Årshjulet</legend>
@@ -63,6 +69,32 @@ page_header('Indstillinger');
       og begivenheder uden personer samles i ringen "Ingen person".</p>
     <label><input type="checkbox" name="ring_names" value="1" <?= $ringNames ? 'checked' : '' ?>>
       Vis kategorinavne (kun ved én ring pr. kategori)</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Design af topbar</legend>
+    <div class="row">
+      <label>Baggrundsfarve<input type="color" name="topbar_bg" value="<?= h($topbarBg) ?>"></label>
+      <label>Tekstfarve<input type="color" name="topbar_fg" value="<?= h($topbarFg) ?>"></label>
+      <label class="grow">Tekst<input type="text" name="topbar_text" value="<?= h($topbarText) ?>" maxlength="<?= Settings::TOPBAR_TEXT_MAX ?>"
+        placeholder="<?= h(Settings::DEFAULTS['topbar_text']) ?>"></label>
+    </div>
+    <p class="muted">Standard er rød baggrund (<?= Settings::DEFAULTS['topbar_bg'] ?>) med hvid tekst og teksten "<?= h(Settings::DEFAULTS['topbar_text']) ?>".
+      Teksten vises i topbaren og fanebladet, men ikke i midten af hjulet. Den må være tom, hvis der er et logo.</p>
+    <div class="row">
+      <label class="grow">Logo<input type="file" name="logo" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,<?= implode(',', Settings::LOGO_TYPES) ?>"></label>
+      <label>Logoets højde (px)<input type="number" name="topbar_logo_height" value="<?= h($logoHeight) ?>"
+        min="<?= Settings::LOGO_HEIGHT_MIN ?>" max="<?= Settings::LOGO_HEIGHT_MAX ?>" step="1" placeholder="<?= Settings::LOGO_HEIGHT_DEFAULT ?>"></label>
+    </div>
+    <p class="muted">PNG, JPG, GIF, WebP eller SVG på højst <?= Settings::LOGO_MAX_BYTES / 1024 / 1024 ?> MB. Logoet vises til venstre for teksten
+      og skaleres til den valgte højde (<?= Settings::LOGO_HEIGHT_MIN ?>–<?= Settings::LOGO_HEIGHT_MAX ?> pixels). Uden en højde bruges
+      <?= Settings::LOGO_HEIGHT_DEFAULT ?> pixels. Et nyt logo erstatter det nuværende.</p>
+    <?php if ($logo): ?>
+      <div class="row">
+        <span class="logo-preview" style="background: <?= h(Settings::topbarBg()) ?>; --logo-h: <?= Settings::logoHeight() ?>px"><img src="logo.php?v=<?= h($logo['v']) ?>" alt="Nuværende logo"></span>
+        <label><input type="checkbox" name="remove_logo" value="1" <?= !empty($_POST['remove_logo']) ? 'checked' : '' ?>> Fjern logoet</label>
+      </div>
+    <?php endif; ?>
   </fieldset>
 
   <div class="actions">

@@ -10,18 +10,25 @@ function asset(string $file): string
 function page_header(string $title): void
 {
     $flash = flash();
+    // Topbarens udseende fra Indstillinger → Design af topbar
+    $bg = Settings::topbarBg();
+    $brand = Settings::topbarText();
+    $logo = Settings::topbarLogo();
     ?><!doctype html>
 <html lang="da">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= h($title) ?> · Årshjul</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%23e30613%27/%3E%3C/svg%3E">
+<title><?= h($title) ?> · <?= h($brand !== '' ? $brand : 'Årshjul') ?></title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ccircle cx=%278%27 cy=%278%27 r=%277%27 fill=%27%23<?= substr($bg, 1) ?>%27/%3E%3C/svg%3E">
 <link rel="stylesheet" href="<?= asset('style.css') ?>">
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="index.php">◔ Årshjul</a>
+<header class="topbar" style="--topbar-bg: <?= $bg ?>; --topbar-fg: <?= Settings::topbarFg() ?>; --logo-h: <?= Settings::logoHeight() ?>px">
+  <a class="brand" href="index.php"<?= $brand === '' ? ' aria-label="Forside"' : '' ?>>
+    <?php if ($logo): ?><img class="brand-logo" src="logo.php?v=<?= h($logo['v']) ?>" alt=""><?php else: ?>◔<?php endif; ?>
+    <?php if ($brand !== ''): ?><span><?= h($brand) ?></span><?php endif; ?>
+  </a>
 <?php if ($user = Auth::user()): ?>
   <?php if (Auth::can('admin')): $y = selected_year(); $page = basename($_SERVER['SCRIPT_NAME'] ?? ''); ?>
   <nav class="adminnav" aria-label="Administration">
