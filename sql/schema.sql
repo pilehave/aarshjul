@@ -99,7 +99,9 @@ CREATE TABLE users (
     active         TINYINT(1) NOT NULL DEFAULT 1, -- brugere deaktiveres i stedet for at blive slettet
     created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_login_at  TIMESTAMP NULL,
+    ical_token     CHAR(64) NULL,               -- nøglen i brugerens kalenderadresse (ical.php), NULL = ingen adresse endnu
     UNIQUE KEY uq_users_email (email),
+    UNIQUE KEY uq_users_ical (ical_token),
     UNIQUE KEY uq_users_person (person_id),
     FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

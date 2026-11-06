@@ -321,6 +321,38 @@
     });
   }
 
+  // --- Forside: kalenderabonnement. data-open-dialog åbner dialogen; #kalender åbner den efter oprettelse af adressen ---
+  document.querySelectorAll('[data-open-dialog]').forEach(function (btn) {
+    var dlg = document.getElementById(btn.getAttribute('data-open-dialog'));
+    if (!dlg || !dlg.showModal) return;
+    btn.addEventListener('click', function () { dlg.showModal(); });
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target.closest('[data-close]') || ev.target === dlg) dlg.close();
+    });
+    dlg.addEventListener('close', function () {
+      if (location.hash === '#kalender') history.replaceState(null, '', location.pathname + location.search);
+    });
+    if (dlg.id === 'ical-modal' && location.hash === '#kalender') dlg.showModal();
+  });
+
+  // --- Kalenderadresse: kopiér adressen i feltet ved siden af knappen (forsiden og Min konto) ---
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-copy]');
+    if (!btn) return;
+    var input = btn.parentNode.querySelector('input');
+    var done = function () {
+      btn.textContent = 'Kopieret ✓';
+      setTimeout(function () { btn.textContent = 'Kopiér'; }, 2000);
+    };
+    input.select();
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(input.value).then(done, function () { document.execCommand('copy'); done(); });
+    } else {
+      document.execCommand('copy'); // uden https (fx http://192.168...) findes navigator.clipboard ikke
+      done();
+    }
+  });
+
   // --- Forside: søgning. Mens man skriver, filtreres listen, og hjulet dæmper det, der ikke matcher (samme regel som Events::matches) ---
   var search = document.getElementById('search');
   if (search && occData) {
