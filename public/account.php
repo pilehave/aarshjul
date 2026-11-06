@@ -62,7 +62,7 @@ page_header('Min konto');
   <fieldset>
     <legend>Kalenderabonnement</legend>
     <?php if ($icalToken): ?>
-      <?php ical_address(Ical::url($icalToken)); ?>
+      <?php ical_address(Ical::url($icalToken, name: Ical::name())); ?>
       <p class="muted">Adressen viser alle begivenheder. På forsiden kan du under "Abonnér i kalender" få en adresse,
         der kun viser én person eller kategori. Laver du en ny adresse, holder den gamle op med at virke, også i de kalendere,
         der abonnerer på den.</p>

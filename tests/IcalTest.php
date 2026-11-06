@@ -54,8 +54,16 @@ test('iCal: nøglen er 64 hex-tegn', function () {
 test('iCal: adressen bygges fra app_url med valgfrit filter', function () {
     $base = config('app_url');
     $t = str_repeat('b', 64);
-    assert_same("$base/ical.php?token=$t", Ical::url($t));
-    assert_same("$base/ical.php?token=$t&person=3&category=2", Ical::url($t, 3, 2));
+    assert_same("$base/ical.php/Aarshjul.ics?token=$t", Ical::url($t));
+    assert_same("$base/ical.php/Aarshjul-Anne-Holm.ics?token=$t&person=3&category=2", Ical::url($t, 3, 2, 'Årshjul – Anne Holm'));
+});
+
+test('iCal: filnavnet i adressen er kalenderens navn i ren ASCII', function () {
+    assert_same('Aarshjul-for-Hornslet-IF-Haandbold-Anne-Holm.ics', Ical::filename('Årshjul for Hornslet IF Håndbold – Anne Holm'));
+    assert_same('Oekonomi-Moeder-Oesterbro.ics', Ical::filename('Økonomi: Møder, Østerbro'));
+    assert_same('Cafe-Zoe.ics', Ical::filename('Café Zoë'));
+    assert_same('Aarshjul.ics', Ical::filename('–/–'), 'Uden bogstaver bruges Aarshjul');
+    assert_true(strlen(Ical::filename(str_repeat('Lang tekst ', 20))) <= 84, 'Højst 80 tegn + .ics');
 });
 
 test('iCal: en forekomst bliver en heldagsbegivenhed med fast UID, og DTEND er dagen efter', function () {

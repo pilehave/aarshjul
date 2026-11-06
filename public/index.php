@@ -321,7 +321,7 @@ $icalFilter = array_filter([
   <?php if ($icalToken): ?>
     <p><?= $icalFilter ? 'Adressen viser kun begivenheder for ' . h(implode(' og ', $icalFilter)) . '.'
       : 'Adressen viser alle begivenheder. Vælg en person eller kategori i filteret for at få en adresse kun til dem.' ?></p>
-    <?php ical_address(Ical::url($icalToken, $personId, $categoryId)); ?>
+    <?php ical_address(Ical::url($icalToken, $personId, $categoryId, Ical::name($personId, $categoryId))); ?>
     <p class="muted">Du kan lave en ny adresse under <a href="account.php?year=<?= $year ?>#kalender">Min konto</a>, hvis den gamle er kommet ud.</p>
   <?php else: ?>
     <p>Abonnér på årshjulet i Outlook, Google Kalender eller Apple Kalender, så begivenhederne vises i din egen kalender

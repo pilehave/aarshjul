@@ -51,10 +51,40 @@ final class Ical
         return (bool)preg_match('/^[0-9a-f]{64}$/', $token);
     }
 
-    /** Abonnementsadressen, evt. filtreret på person og/eller kategori. Bygget fra app_url, ikke Host-headeren. */
-    public static function url(string $token, ?int $personId = null, ?int $categoryId = null): string
+    /**
+     * Abonnementsadressen, evt. filtreret på person og/eller kategori. Bygget fra app_url, ikke Host-headeren.
+     * Outlook og Google navngiver kalenderen efter adressens filnavn, ikke X-WR-CALNAME, så $name sættes ind
+     * som filnavn efter ical.php/ (PATH_INFO, som ical.php ignorerer): …/ical.php/Aarshjul-Anne-Holm.ics?token=…
+     */
+    public static function url(string $token, ?int $personId = null, ?int $categoryId = null, string $name = 'Årshjul'): string
     {
-        return config('app_url') . '/ical.php?' . http_build_query(array_filter(['token' => $token, 'person' => $personId, 'category' => $categoryId]));
+        return config('app_url') . '/ical.php/' . self::filename($name) . '?'
+            . http_build_query(array_filter(['token' => $token, 'person' => $personId, 'category' => $categoryId]));
+    }
+
+    /** Kalenderens navn: topbarens tekst og evt. filteret, fx "Årshjul – Anne Holm". */
+    public static function name(?int $personId = null, ?int $categoryId = null): string
+    {
+        $name = Settings::topbarText() ?: 'Årshjul';
+        $filters = [];
+        if ($personId) {
+            $filters[] = array_column(Events::people(), 'name', 'id')[$personId] ?? null;
+        }
+        if ($categoryId) {
+            $filters[] = Categories::all()[$categoryId]['name'] ?? null;
+        }
+        $filters = array_filter($filters);
+        return $filters ? $name . ' – ' . implode(', ', $filters) : $name;
+    }
+
+    /** Et filnavn til adressen ud fra kalenderens navn: kun a-z, 0-9 og bindestreg, så alle programmer kan læse det. */
+    public static function filename(string $name): string
+    {
+        $s = strtr($name, ['æ' => 'ae', 'ø' => 'oe', 'å' => 'aa', 'Æ' => 'Ae', 'Ø' => 'Oe', 'Å' => 'Aa']);
+        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: '';
+        $s = trim((string)preg_replace('/[^A-Za-z0-9]+/', '-', $s), '-');
+        $s = rtrim(substr($s, 0, 80), '-');
+        return ($s !== '' ? $s : 'Aarshjul') . '.ics';
     }
 
     /** @return array{0:string,1:string} første og sidste dato (Y-m-d) i feedet */

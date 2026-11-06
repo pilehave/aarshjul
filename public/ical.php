@@ -19,20 +19,10 @@ $categoryId = (int)($_GET['category'] ?? 0) ?: null;
 [$from, $to] = Ical::window(date('Y-m-d'));
 $occ = Events::occurrencesBetween($from, $to, $personId, $categoryId);
 
-// Kalenderens navn, fx "Årshjul – Anne Holm"
-$name = Settings::topbarText() ?: 'Årshjul';
-$filters = [];
-if ($personId) {
-    $filters[] = array_column(Events::people(), 'name', 'id')[$personId] ?? null;
-}
-if ($categoryId) {
-    $filters[] = Categories::all()[$categoryId]['name'] ?? null;
-}
-if ($filters = array_filter($filters)) {
-    $name .= ' – ' . implode(', ', $filters);
-}
+// Kalenderens navn, fx "Årshjul – Anne Holm". Filnavnet efter ical.php/ i adressen (se Ical::url) bruges ikke her
+$name = Ical::name($personId, $categoryId);
 
 header('Content-Type: text/calendar; charset=utf-8');
-header('Content-Disposition: inline; filename="aarshjul.ics"');
+header('Content-Disposition: inline; filename="' . Ical::filename($name) . '"');
 header('Cache-Control: no-cache');
 echo Ical::calendar($occ, $name, time(), config('app_url'));
