@@ -74,7 +74,8 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .list-hidden main { max-width: none; }
 .list-hidden .layout { grid-template-columns: 1fr; }
 .list-hidden #event-list { display: none; }
-.list-hidden .wheel { position: relative; }
+/* top: auto, ellers flytter top: 12px fra .wheel (til sticky) kassen 12px ned, når den er relative */
+.list-hidden .wheel { position: relative; top: auto; }
 .list-hidden .wheel svg { width: min(100%, max(480px, calc(100vh - 190px))); margin: 0 auto; }
 .wheel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; position: sticky; top: 12px; }
 .wheel-export { position: absolute; top: 12px; right: 12px; z-index: 1; }
