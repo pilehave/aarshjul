@@ -5,14 +5,20 @@
 * { box-sizing: border-box; }
 body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--bg); }
 a { color: var(--primary); }
-.topbar { background: #e30613; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
-.brand { color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; }
+/* Farverne sættes i layout.php fra Indstillinger → Design af topbar */
+.topbar { --topbar-bg: #e30613; --topbar-fg: #fff; background: var(--topbar-bg); color: var(--topbar-fg);
+  padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; font-size: 18px; }
+/* --logo-h er logoets højde fra Indstillinger (standard 32px) */
+.brand-logo { display: block; height: var(--logo-h, 32px); width: auto; max-width: 400px; object-fit: contain; }
 .adminnav { margin-left: auto; display: flex; gap: 4px; }
-.adminnav a { color: #fff; text-decoration: none; font-size: 14px; padding: 4px 10px; border-radius: 6px; }
-.adminnav a:hover, .adminnav a[aria-current] { background: rgba(255, 255, 255, .18); }
-.adminnav + .userbox { margin-left: 16px; padding-left: 16px; border-left: 1px solid rgba(255, 255, 255, .35); }
-.userbox { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; }
-.userbox a { color: #fff; }
+.adminnav a { color: inherit; text-decoration: none; font-size: 14px; padding: 4px 10px; border-radius: 6px; }
+.adminnav a:hover, .adminnav a[aria-current] { background: color-mix(in srgb, currentColor 18%, transparent); }
+.adminnav + .userbox { margin-left: 16px; padding-left: 16px; border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+.userbox { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.userbox a { color: inherit; }
+.logo-preview { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 6px; background: var(--topbar-bg); }
+.logo-preview img { display: block; height: var(--logo-h, 32px); width: auto; max-width: 400px; }
 .login-form { max-width: 380px; margin: 40px auto 0; }
 main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 40px; }
 h1 { font-size: 24px; margin: 8px 0 16px; }

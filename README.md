@@ -168,6 +168,9 @@ ved hvert push og pull request.
   buen i hjulet. Næste forekomst af samme begivenhed starter uden note.
 - **Indstillinger** (tandhjulet ved "Personer"): vælg hvilken måned årshjulet starter med. Starter det
   fx i august, viser hjulet for 2026 perioden 1. august 2026 – 31. juli 2027 (vist som "2026/27").
+  Under **Design af topbar** kan baggrundsfarve, tekstfarve og teksten i topbaren ændres, og man kan uploade et
+  logo (PNG, JPG, GIF, WebP eller SVG), der vises til venstre for teksten. Logoets højde kan sættes til 16–120
+  pixels (standard 32). Titlen i midten af hjulet ændres ikke.
 - **Eksport**: Excel (.xlsx, genereres uden biblioteker), PNG, PDF (hjul + liste, via jsPDF der
   ligger lokalt i `public/assets/vendor`) og SVG.
 
@@ -182,14 +185,14 @@ sql/migrations/       Skemaændringer til eksisterende databaser
 src/Recurrence.php    Udregning af datoer ud fra gentagelsesregler
 src/Categories.php    Kategorier (navn + farve)
 src/People.php        Personer
-src/Settings.php      Indstillinger (startmåned)
+src/Settings.php      Indstillinger (startmåned, ringe, topbarens design)
 src/Events.php        Databaseadgang, validering, afhængigheder og flueben
 src/Template.php      Skabeloner: eksport og import af begivenheder som JSON
 src/Wheel.php         Tegner hjulet som SVG
 src/Xlsx.php          Minimal .xlsx-skriver
 public/               Webrod: index.php (hjul + liste), search.php (søgning i alle år), event.php (formular), categories.php, people.php, settings.php,
                       action.php (flueben og noter pr. forekomst),
-                      import.php + export_json.php (skabelon), download.php (filer), export_xlsx.php, wheel_svg.php, assets/
+                      import.php + export_json.php (skabelon), download.php (filer), logo.php (topbarens logo), export_xlsx.php, wheel_svg.php, assets/
 storage/uploads/      Uploadede filer
 ```
 
