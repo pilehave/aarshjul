@@ -4,8 +4,9 @@ declare(strict_types=1);
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('Europe/Copenhagen');
 
-// Ingen session i CLI (tests og bin/-scripts); PHP 8.5 advarer ellers om manglende cookies
-if (PHP_SAPI !== 'cli') {
+// Ingen session i CLI (tests og bin/-scripts); PHP 8.5 advarer ellers om manglende cookies.
+// Heller ikke på sider, der definerer NO_SESSION (kalenderfeedet og logoet), da de hentes uden cookies
+if (PHP_SAPI !== 'cli' && !defined('NO_SESSION')) {
     ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([
         'httponly' => true,
@@ -29,6 +30,7 @@ require __DIR__ . '/Mailer.php';
 require __DIR__ . '/Auth.php';
 require __DIR__ . '/Users.php';
 require __DIR__ . '/PasswordReset.php';
+require __DIR__ . '/Ical.php';
 
 function config(string $key)
 {

@@ -173,6 +173,12 @@ ved hvert push og pull request.
   pixels (standard 32). Titlen i midten af hjulet ændres ikke.
 - **Eksport**: Excel (.xlsx, genereres uden biblioteker), PNG, PDF (hjul + liste, via jsPDF der
   ligger lokalt i `public/assets/vendor`) og SVG.
+- **Kalenderabonnement** (iCal): "Abonnér i kalender" på forsiden giver en adresse, man kan abonnere på i Outlook,
+  Google Kalender eller Apple Kalender. Den følger forsidens filter på person og kategori. Hver forekomst fra et år
+  tilbage til to år frem bliver en heldagsbegivenhed med kategori, personer, status, beskrivelse, note og links.
+  Adressen indeholder en hemmelig nøgle pr. bruger. Under Min konto kan man lave en ny, så den gamle holder op med at
+  virke, og feedet stopper, hvis brugeren deaktiveres. Kalenderprogrammerne henter selv ændringer, Outlook og Google
+  ofte kun nogle gange i døgnet. Kræver migrationen `sql/migrations/2026-11-06-ical-token.sql` på eksisterende databaser.
 
 ## Opbygning
 
@@ -190,9 +196,10 @@ src/Events.php        Databaseadgang, validering, afhængigheder og flueben
 src/Template.php      Skabeloner: eksport og import af begivenheder som JSON
 src/Wheel.php         Tegner hjulet som SVG
 src/Xlsx.php          Minimal .xlsx-skriver
+src/Ical.php          Kalenderabonnement: nøgler og iCal-filen (ical.php)
 public/               Webrod: index.php (hjul + liste), search.php (søgning i alle år), event.php (formular), categories.php, people.php, settings.php,
                       action.php (flueben og noter pr. forekomst),
-                      import.php + export_json.php (skabelon), download.php (filer), logo.php (topbarens logo), export_xlsx.php, wheel_svg.php, assets/
+                      import.php + export_json.php (skabelon), download.php (filer), logo.php (topbarens logo), ical.php (kalenderabonnement), export_xlsx.php, wheel_svg.php, assets/
 storage/uploads/      Uploadede filer
 ```
 

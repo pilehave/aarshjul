@@ -154,6 +154,13 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .modal-occ .field-label { margin-top: 10px; }
 .modal-occ ul.plain { margin: 2px 0; }
 .modal-occ > .btn.primary { margin-top: 4px; }
+/* Kalenderadresse med kopiér-knap (ical_address i layout.php) */
+.ical-url { display: flex; gap: 8px; align-items: center; margin: 10px 0 4px; }
+.ical-url input[type=text] { flex: 1; margin: 0; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+.ical-url .btn { flex: none; }
+.ical-help summary { cursor: pointer; color: var(--primary); }
+.ical-help ul { margin: 6px 0; padding-left: 20px; }
+.ical-help li { margin: 3px 0; }
 .prereq { font-size: 13px; margin-top: 3px; }
 .prereq.ok { color: var(--ok); }
 .prereq.wait { color: var(--warn); }

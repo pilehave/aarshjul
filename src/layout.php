@@ -60,6 +60,28 @@ function password_fields(): void
 <?php
 }
 
+/** En kalenderadresse (Ical::url) med kopiér-knap og vejledning. Bruges på account.php og i forsidens dialog. */
+function ical_address(string $url): void
+{
+    ?>
+    <div class="ical-url">
+      <input type="text" value="<?= h($url) ?>" readonly aria-label="Kalenderadresse" onfocus="this.select()">
+      <button class="btn" type="button" data-copy>Kopiér</button>
+    </div>
+    <p class="muted"><strong>Del ikke adressen.</strong> Alle med adressen kan se begivenhederne, uden at logge ind.</p>
+    <details class="ical-help">
+      <summary>Sådan abonnerer du</summary>
+      <ul>
+        <li><strong>Outlook</strong>: Kalender → Tilføj kalender → Abonnér fra internettet → indsæt adressen.</li>
+        <li><strong>Google Kalender</strong> (på en computer): Andre kalendere → + → Fra webadresse → indsæt adressen.</li>
+        <li><strong>Apple Kalender</strong>: Arkiv → Nyt kalenderabonnement → indsæt adressen.</li>
+      </ul>
+      <p class="muted">Kalenderen viser forekomster fra et år tilbage til to år frem. Kalenderprogrammet henter selv ændringer,
+        men Outlook og Google gør det ofte kun nogle gange i døgnet.</p>
+    </details>
+<?php
+}
+
 function page_footer(): void
 {
     ?></main>

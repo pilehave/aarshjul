@@ -5,6 +5,15 @@ require __DIR__ . '/../src/layout.php';
 
 $year = selected_year();
 $errors = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'ical') {
+    // Opret eller udskift kalenderadressen. Forsiden sender back med #kalender, så dialogen åbnes igen
+    require_post_csrf();
+    $had = Ical::token((int)Auth::user()['id']) !== null;
+    Ical::renewToken((int)Auth::user()['id']);
+    flash($had ? 'Du har fået en ny kalenderadresse. Den gamle virker ikke længere, så husk at opdatere dine abonnementer.'
+        : 'Din kalenderadresse er oprettet.');
+    redirect(local_path((string)($_POST['back'] ?? ''), "account.php?year=$year#kalender"));
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_post_csrf();
     $errors = Auth::changePassword((string)($_POST['current'] ?? ''), (string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
@@ -14,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 $u = Auth::user();
+$icalToken = Ical::token((int)$u['id']);
 
 page_header('Min konto');
 ?>
@@ -43,6 +53,28 @@ page_header('Min konto');
     <div class="actions">
       <button class="btn primary" type="submit">Skift adgangskode</button>
     </div>
+  </fieldset>
+</form>
+
+<form method="post" class="event-form" id="kalender">
+  <?= csrf_field() ?>
+  <input type="hidden" name="do" value="ical">
+  <fieldset>
+    <legend>Kalenderabonnement</legend>
+    <?php if ($icalToken): ?>
+      <?php ical_address(Ical::url($icalToken, name: Ical::name())); ?>
+      <p class="muted">Adressen viser alle begivenheder. På forsiden kan du under "Abonnér i kalender" få en adresse,
+        der kun viser én person eller kategori. Laver du en ny adresse, holder den gamle op med at virke, også i de kalendere,
+        der abonnerer på den.</p>
+      <div class="actions">
+        <button class="btn danger" type="submit" onclick="return confirm('Den gamle adresse holder op med at virke. Fortsæt?')">Lav ny adresse</button>
+      </div>
+    <?php else: ?>
+      <p>Abonnér på årshjulet i Outlook, Google Kalender eller Apple Kalender, så begivenhederne vises i din egen kalender.</p>
+      <div class="actions">
+        <button class="btn primary" type="submit">Opret kalenderadresse</button>
+      </div>
+    <?php endif; ?>
   </fieldset>
 </form>
 <?php page_footer();

@@ -3,6 +3,7 @@ declare(strict_types=1);
 // Logoet i topbaren vises også på login-siden, så det kræver ikke login. Det viser kun det logo,
 // en administrator har valgt under Indstillinger, og ingen andre data.
 const PUBLIC_PAGE = true;
+const NO_SESSION = true; // ingen session, og dermed heller ingen no-cache-headere fra session_start()
 require __DIR__ . '/../src/bootstrap.php';
 
 $logo = Settings::topbarLogo();
@@ -15,8 +16,6 @@ header('Content-Length: ' . filesize($logo['file']));
 header('X-Content-Type-Options: nosniff');
 // En SVG kan indeholde scripts. Som <img> køres de aldrig, og åbnes filen direkte, blokerer sandbox dem
 header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
-// Adressen indeholder logoets gemte navn (?v=), som skifter ved et nyt logo. session_start() har sat no-cache-headere
-header_remove('Pragma');
-header_remove('Expires');
+// Adressen indeholder logoets gemte navn (?v=), som skifter ved et nyt logo
 header('Cache-Control: ' . (($_GET['v'] ?? '') === $logo['v'] ? 'public, max-age=31536000, immutable' : 'no-cache'));
 readfile($logo['file']);

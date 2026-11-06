@@ -102,6 +102,7 @@ page_header("Årshjul $label");
     <?php endif; ?>
   </nav>
   <div class="spacer"></div>
+  <button class="btn" type="button" data-open-dialog="ical-modal" title="Se årshjulets begivenheder i din egen kalender">Abonnér i kalender</button>
   <?php if ($isAdmin): ?>
   <a class="btn primary" href="event.php?year=<?= $year ?>">+ Ny begivenhed</a>
   <?php endif; ?>
@@ -298,6 +299,41 @@ page_header("Årshjul $label");
   <div class="actions">
     <a class="btn primary" data-f="edit" href="#">Redigér begivenhed</a>
     <a class="btn" data-f="copy" href="#">Kopiér</a>
+    <button type="button" class="btn" data-close>Luk</button>
+  </div>
+ </div>
+</dialog>
+
+<?php
+// Kalenderabonnement for det aktuelle filter (person/kategori). Søgning, periode og "Kun ikke-opfyldte" følger ikke med
+$icalToken = Ical::token($myId);
+$icalFilter = array_filter([
+    $personId ? 'personen ' . (array_column($people, 'name', 'id')[$personId] ?? '?') : null,
+    $categoryId ? 'kategorien ' . ($categories[$categoryId]['name'] ?? '?') : null,
+]);
+?>
+<dialog class="modal" id="ical-modal" aria-labelledby="ical-modal-title">
+ <div class="modal-body">
+  <div class="modal-head">
+    <h2 id="ical-modal-title">Abonnér i kalender</h2>
+    <button type="button" class="modal-close" data-close aria-label="Luk">×</button>
+  </div>
+  <?php if ($icalToken): ?>
+    <p><?= $icalFilter ? 'Adressen viser kun begivenheder for ' . h(implode(' og ', $icalFilter)) . '.'
+      : 'Adressen viser alle begivenheder. Vælg en person eller kategori i filteret for at få en adresse kun til dem.' ?></p>
+    <?php ical_address(Ical::url($icalToken, $personId, $categoryId, Ical::name($personId, $categoryId))); ?>
+    <p class="muted">Du kan lave en ny adresse under <a href="account.php?year=<?= $year ?>#kalender">Min konto</a>, hvis den gamle er kommet ud.</p>
+  <?php else: ?>
+    <p>Abonnér på årshjulet i Outlook, Google Kalender eller Apple Kalender, så begivenhederne vises i din egen kalender
+      og opdateres, når årshjulet ændres.</p>
+    <form method="post" action="account.php">
+      <?= csrf_field() ?>
+      <input type="hidden" name="do" value="ical">
+      <input type="hidden" name="back" value="<?= h($_SERVER['REQUEST_URI'] . '#kalender') ?>">
+      <button class="btn primary" type="submit">Opret min kalenderadresse</button>
+    </form>
+  <?php endif; ?>
+  <div class="actions">
     <button type="button" class="btn" data-close>Luk</button>
   </div>
  </div>
