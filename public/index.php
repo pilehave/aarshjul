@@ -291,7 +291,7 @@ page_header("Årshjul $label");
     <?php endif; ?>
     <div class="field-label modal-files-label" data-f="files-label">Filer</div>
     <ul class="plain files" data-f="files"></ul>
-    <label <?= $canEdit ? '' : 'hidden' ?>>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
+    <label <?= $canEdit ? '' : 'hidden' ?>>Upload filer (max <?= (int)config('max_upload_mb') ?> MB pr. fil)<input type="file" name="files[]" multiple></label>
     <?php if ($canEdit): ?>
     <button class="btn primary" type="submit">Gem note</button>
     <?php endif; ?>
