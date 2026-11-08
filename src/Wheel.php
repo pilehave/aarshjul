@@ -27,6 +27,24 @@ final class Wheel
     /** Bredden på skyggen ved sammenstødet øverst, hvor årets sidste måned møder den første */
     private const SEAM_WIDTH = 18;
 
+    /** Hjulets font, samme som siden (style.css). Fontfilen ligger under public/assets/ */
+    public const FONT_FAMILY = "Geist, 'Geist Fallback', Helvetica, Arial, sans-serif";
+    public const FONT_FILE = 'fonts/Geist-Variable.woff2';
+
+    /**
+     * Fonten indlejret som <style> til en SVG, der skal vises uden for siden (SVG-eksport), hvor style.css ikke er
+     * med. Tom, hvis fontfilen mangler; så bruges reservefontene i FONT_FAMILY.
+     */
+    public static function fontStyle(): string
+    {
+        $data = @file_get_contents(__DIR__ . '/../public/assets/' . self::FONT_FILE);
+        if ($data === false) {
+            return '';
+        }
+        return '<style>@font-face{font-family:Geist;font-weight:100 900;src:url(data:font/woff2;base64,'
+            . base64_encode($data) . ') format("woff2")}</style>';
+    }
+
     /**
      * Fordeler forekomsterne i ringe og baner.
      *  auto      Én ring uden navn. Serier, der aldrig overlapper hinanden, deler bane (som før).
@@ -149,7 +167,7 @@ final class Wheel
 
         $o = [];
         $full = self::SIZE + 2 * self::PAD;
-        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label));
+        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="%4$s" role="img" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label), h(self::FONT_FAMILY));
         $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern>'
             // Grå skygge under hjulets yderkant, så hjulet ser ud til at svæve over baggrunden
             . '<filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/></filter>'

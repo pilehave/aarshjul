@@ -431,9 +431,37 @@
   var year = wheel.getAttribute('data-year');
   var fileYear = year.replace(/[\/\s]+/g, '-');
 
-  function wheelToCanvas(scale) {
+  // En SVG tegnet som billede kan ikke hente sidens fonte, så Geist lægges ind i SVG'en som data-URL.
+  // Fontfilen findes via preload-linket i layout.php og hentes kun én gang. Fejler det, bruges reservefonten
+  var fontCss = null;
+  function wheelFontCss() {
+    if (fontCss) return fontCss;
+    var link = document.querySelector('link[rel="preload"][as="font"]');
+    fontCss = !link ? Promise.resolve('') : fetch(link.href).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.blob();
+    }).then(function (blob) {
+      return new Promise(function (resolve) {
+        var fr = new FileReader();
+        fr.onload = function () {
+          resolve('@font-face{font-family:Geist;font-weight:100 900;src:url(' + fr.result.replace(/^data:[^;,]*/, 'data:font/woff2') + ') format("woff2")}');
+        };
+        fr.onerror = function () { resolve(''); };
+        fr.readAsDataURL(blob);
+      });
+    }).catch(function () { return ''; });
+    return fontCss;
+  }
+
+  async function wheelToCanvas(scale) {
     var svg = wheel.querySelector('svg').cloneNode(true);
     svg.querySelectorAll('a').forEach(function (a) { while (a.firstChild) a.parentNode.insertBefore(a.firstChild, a); a.remove(); });
+    var css = await wheelFontCss();
+    if (css) {
+      var style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      style.textContent = css;
+      svg.insertBefore(style, svg.firstChild);
+    }
     var size = 1000 * scale;
     svg.setAttribute('width', size); svg.setAttribute('height', size);
     var xml = new XMLSerializer().serializeToString(svg);
