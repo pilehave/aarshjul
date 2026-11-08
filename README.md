@@ -173,6 +173,9 @@ ved hvert push og pull request.
   pixels (standard 32). Titlen i midten af hjulet ændres ikke.
 - **Eksport**: Excel (.xlsx, genereres uden biblioteker), PNG, PDF (hjul + liste, via jsPDF der
   ligger lokalt i `public/assets/vendor`) og SVG.
+- **Font**: Siden og hjulet bruger Geist (SIL Open Font License, `public/assets/fonts/`), som ligger i projektet
+  i stedet for at blive hentet fra et CDN. Indtil den er hentet, vises "Geist Fallback", der er Arial skaleret til
+  Geists mål. I SVG-, PNG- og PDF-eksporten er fonten lagt ind i hjulet, så det ser ens ud overalt.
 - **Kalenderabonnement** (iCal): "Abonnér i kalender" på forsiden giver en adresse, man kan abonnere på i Outlook,
   Google Kalender eller Apple Kalender. Den følger forsidens filter på person og kategori. Hver forekomst fra et år
   tilbage til to år frem bliver en heldagsbegivenhed med kategori, personer, status, beskrivelse, note og links.
