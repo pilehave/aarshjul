@@ -97,7 +97,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
     <?php endif; ?>
     <label>Beskrivelse<textarea name="description" rows="4"><?= h($e['description']) ?></textarea></label>
     <div class="field">
-      <label for="people-input" class="field-label">Personer <small>(begynd at skrive et navn)</small></label>
+      <label for="people-input" class="field-label">Personer (begynd at skrive et navn)</label>
       <div class="tokens" id="people-picker" data-people="<?= h(json_encode(array_values(array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name']], $people)))) ?>">
         <?php foreach ($e['people'] as $p): ?>
           <span class="token"><?= h($p['name']) ?><button type="button" class="token-x" title="Fjern <?= h($p['name']) ?>" aria-label="Fjern <?= h($p['name']) ?>">×</button><input type="hidden" name="people[]" value="<?= (int)$p['id'] ?>"></span>
@@ -164,7 +164,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
       <label>Ugenummer<input type="number" name="week_number" min="1" max="53" value="<?= $e['recurrence'] === 'week_number' ? (int)$e['rule_nth'] : '' ?>"></label>
     </div>
     <div class="row rule" data-rules="weekly monthly yearly nth_weekday last_week week_number">
-      <label>Gentag til og med <small>(valgfri)</small><input type="date" name="end_date" value="<?= h($e['end_date'] ?? '') ?>"></label>
+      <label>Gentag til og med (valgfri)<input type="date" name="end_date" value="<?= h($e['end_date'] ?? '') ?>"></label>
       <span class="hint">Startdatoen er den første dato, gentagelsen kan falde på.</span>
     </div>
     <?php if ($nextDates): ?>
@@ -209,7 +209,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
       <ul class="plain files">
         <?php foreach ($all[$id]['files'] as $f): ?>
           <li><a href="download.php?id=<?= (int)$f['id'] ?>"><?= h($f['original_name']) ?></a>
-            <small>(<?= number_format($f['size_bytes'] / 1024, 0, ',', '.') ?> KB)</small>
+            (<?= number_format($f['size_bytes'] / 1024, 0, ',', '.') ?> KB)
             <label class="inline"><input type="checkbox" name="delete_file[]" value="<?= (int)$f['id'] ?>"> slet</label></li>
         <?php endforeach; ?>
       </ul>
@@ -219,11 +219,11 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
       <ul class="plain files">
         <?php foreach ($copyFiles as $f): ?>
           <li><label class="inline"><input type="checkbox" name="copy_file[]" value="<?= (int)$f['id'] ?>" <?= in_array((int)$f['id'], $copyChecked, true) ? 'checked' : '' ?>>
-            <?= h($f['original_name']) ?></label> <small>(<?= number_format($f['size_bytes'] / 1024, 0, ',', '.') ?> KB)</small></li>
+            <?= h($f['original_name']) ?></label> (<?= number_format($f['size_bytes'] / 1024, 0, ',', '.') ?> KB)</li>
         <?php endforeach; ?>
       </ul>
     <?php endif; ?>
-    <label>Upload filer <small>(max <?= (int)config('max_upload_mb') ?> MB pr. fil)</small><input type="file" name="files[]" multiple></label>
+    <label>Upload filer (max <?= (int)config('max_upload_mb') ?> MB pr. fil)<input type="file" name="files[]" multiple></label>
   </fieldset>
 
   <div class="actions">
