@@ -71,7 +71,7 @@ page_header('Brugere');
       $active = $errors ? !empty($in['active'][$id]) : (bool)$u['active']; ?>
       <div class="row user-row <?= $active ? '' : 'is-inactive' ?>">
         <label class="grow">Navn *<input name="name[<?= $id ?>]" required maxlength="150" value="<?= h($in['name'][$id] ?? $u['name']) ?>"></label>
-        <label class="grow">Mail *<input type="email" name="email[<?= $id ?>]" required maxlength="254" value="<?= h($in['email'][$id] ?? $u['email']) ?>"></label>
+        <label class="grow">E-mail *<input type="email" name="email[<?= $id ?>]" required maxlength="254" value="<?= h($in['email'][$id] ?? $u['email']) ?>"></label>
         <label>Rolle<?= $roleSelect("role[$id]", $in['role'][$id] ?? $u['role']) ?></label>
         <label>Person<?= $personSelect("person[$id]", (int)($in['person'][$id] ?? $u['person_id']) ?: null) ?></label>
         <label class="inline active"><input type="checkbox" name="active[<?= $id ?>]" value="1" <?= $active ? 'checked' : '' ?> <?= $id === $selfId ? 'disabled' : '' ?>> aktiv</label>
@@ -80,10 +80,10 @@ page_header('Brugere');
           <?php if ($u['password_hash'] === null): ?>Har ikke valgt adgangskode
             <?php if ($active): ?>
               <button class="btn small" type="submit" name="invite" value="<?= $id ?>" formnovalidate
-                title="Sender en mail med et link til at vælge adgangskode (ændringer i formularen gemmes ikke)">Send invitation</button>
+                title="Sender en e-mail med et link til at vælge adgangskode (ændringer i formularen gemmes ikke)">Send invitation</button>
             <?php endif; ?>
           <?php elseif ($u['last_login_at']): ?>Sidst logget ind <?= h(date_da($u['last_login_at'], true)) ?>
-          <?php else: ?>Har ikke logget ind<?php endif; ?>
+          <?php else: ?>Har ikke været logget ind<?php endif; ?>
         </span>
       </div>
     <?php endforeach; ?>
@@ -98,7 +98,7 @@ page_header('Brugere');
       <label>Person<?= $personSelect('new_person', (int)($in['new_person'] ?? 0) ?: null) ?></label>
     </div>
     <label class="inline"><input type="checkbox" name="new_invite" value="1" <?= !$errors || !empty($in['new_invite']) ? 'checked' : '' ?>>
-      Send invitation på mail, så brugeren kan vælge sin adgangskode (linket virker i <?= PasswordReset::INVITE_DAYS ?> dage)</label>
+      Send invitation på e-mail, så brugeren kan vælge sin adgangskode (linket virker i <?= PasswordReset::INVITE_DAYS ?> dage)</label>
   </fieldset>
 
   <div class="actions">
