@@ -183,7 +183,7 @@ fieldset { background: var(--card); border: 1px solid var(--line); border-radius
 legend { font-weight: 700; padding: 0 6px; }
 label { display: block; margin: 8px 0; font-size: 14px; }
 label.inline { display: inline; margin-left: 10px; }
-input:not([type=checkbox]):not([type=color]), select, textarea { display: block; width: 100%; margin-top: 3px; padding: 7px 8px;
+input:not([type=checkbox]):not([type=radio]):not([type=color]), select, textarea { display: block; width: 100%; margin-top: 3px; padding: 7px 8px;
   border: 1px solid #c9d1de; border-radius: 6px; font: inherit; background: #fff; }
 input[type=color] { display: block; margin-top: 3px; width: 56px; height: 36px; padding: 2px; border: 1px solid #c9d1de; border-radius: 6px; }
 .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
