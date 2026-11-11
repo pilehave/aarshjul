@@ -79,7 +79,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
   <fieldset>
     <legend>Begivenhed</legend>
     <div class="row">
-      <label class="grow">Titel *<input name="title" required maxlength="200" value="<?= h($e['title']) ?>"></label>
+      <label class="grow">Titel *<input name="title" required maxlength="200" placeholder="Fx &quot;Bestyrelsesmøde&quot;" value="<?= h($e['title']) ?>"></label>
       <label class="category">Kategori *
         <span class="category-pick">
           <span class="swatch" id="category-swatch"></span>
@@ -95,7 +95,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
     <?php if (!$categories): ?>
       <p class="muted">Der er ingen kategorier endnu. <a href="categories.php?year=<?= $year ?>">Opret en kategori</a> først.</p>
     <?php endif; ?>
-    <label>Beskrivelse<textarea name="description" rows="4"><?= h($e['description']) ?></textarea></label>
+    <label>Beskrivelse<textarea name="description" rows="4" placeholder="Fx &quot;Dagsorden fremsendes på mail&quot;"><?= h($e['description']) ?></textarea></label>
     <div class="field">
       <label for="people-input" class="field-label">Personer (begynd at skrive et navn)</label>
       <div class="tokens" id="people-picker" data-people="<?= h(json_encode(array_values(array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name']], $people)))) ?>">
