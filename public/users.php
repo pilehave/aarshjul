@@ -70,8 +70,8 @@ page_header('Brugere');
     <?php foreach ($users as $id => $u):
       $active = $errors ? !empty($in['active'][$id]) : (bool)$u['active']; ?>
       <div class="row user-row <?= $active ? '' : 'is-inactive' ?>">
-        <label class="grow">Navn<input name="name[<?= $id ?>]" required maxlength="150" value="<?= h($in['name'][$id] ?? $u['name']) ?>"></label>
-        <label class="grow">Mail<input type="email" name="email[<?= $id ?>]" required maxlength="254" value="<?= h($in['email'][$id] ?? $u['email']) ?>"></label>
+        <label class="grow">Navn *<input name="name[<?= $id ?>]" required maxlength="150" value="<?= h($in['name'][$id] ?? $u['name']) ?>"></label>
+        <label class="grow">Mail *<input type="email" name="email[<?= $id ?>]" required maxlength="254" value="<?= h($in['email'][$id] ?? $u['email']) ?>"></label>
         <label>Rolle<?= $roleSelect("role[$id]", $in['role'][$id] ?? $u['role']) ?></label>
         <label>Person<?= $personSelect("person[$id]", (int)($in['person'][$id] ?? $u['person_id']) ?: null) ?></label>
         <label class="inline active"><input type="checkbox" name="active[<?= $id ?>]" value="1" <?= $active ? 'checked' : '' ?> <?= $id === $selfId ? 'disabled' : '' ?>> aktiv</label>
