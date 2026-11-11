@@ -135,7 +135,8 @@ h1 { font-size: 24px; margin: 8px 0 16px; }
 .occ-attach a { text-decoration: none; overflow-wrap: anywhere; }
 .occ-attach a:hover { text-decoration: underline; }
 .chips { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
-.chip { font-size: 12px; background: #eef2f9; border-radius: 10px; padding: 1px 8px; }
+.chip { font-size: 13px; background: #eef2f9; border-radius: 11px; padding: 1px 9px; }
+.modal-facts .chip { font-size: 14px; }
 .modal { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 0; border-radius: 10px;
   color: var(--ink); background: var(--card); box-shadow: 0 12px 40px rgba(20, 30, 50, .25); }
 .modal::backdrop { background: rgba(20, 30, 50, .45); }
