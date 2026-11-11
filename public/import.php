@@ -85,8 +85,8 @@ page_header('Skabelon');
     <p class="muted">Begivenhederne tilføjes til dem, der allerede er her. Kategorier og personer med samme navn genbruges, resten oprettes.
       Er der fejl i filen, importeres intet.</p>
     <label>Skabelon (.json, max <?= Template::MAX_BYTES / 1024 / 1024 ?> MB)<input type="file" name="template" accept=".json,application/json" required></label>
-    <label class="inline"><input type="radio" name="shift" value="none" <?= $shiftYear ? '' : 'checked' ?>> Behold datoerne fra skabelonen</label>
-    <label class="inline"><input type="radio" name="shift" value="year" <?= $shiftYear ? 'checked' : '' ?>> Flyt datoerne, så den første begivenhed starter i årshjulet
+    <label><input type="radio" name="shift" value="none" <?= $shiftYear ? '' : 'checked' ?>> Behold datoerne fra skabelonen</label>
+    <label><input type="radio" name="shift" value="year" <?= $shiftYear ? 'checked' : '' ?>> Flyt datoerne, så den første begivenhed starter i årshjulet
       <select name="to_year" aria-label="Årshjul">
         <?php $sel = $shiftYear ? (int)$_POST['to_year'] : $year; for ($y = $year - 3; $y <= $year + 5; $y++): ?>
           <option value="<?= $y ?>" <?= $y === $sel ? 'selected' : '' ?>><?= h(year_label($y)) ?></option>
