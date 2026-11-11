@@ -55,8 +55,8 @@ function page_header(string $title): void
 function password_fields(): void
 {
     ?>
-    <label>Ny adgangskode<input type="password" name="password" required minlength="12" maxlength="256" autocomplete="new-password"></label>
-    <label>Gentag ny adgangskode<input type="password" name="password2" required minlength="12" maxlength="256" autocomplete="new-password"></label>
+    <label>Ny adgangskode *<input type="password" name="password" required minlength="12" maxlength="256" autocomplete="new-password"></label>
+    <label>Gentag ny adgangskode *<input type="password" name="password2" required minlength="12" maxlength="256" autocomplete="new-password"></label>
     <p class="muted">Mindst 12 tegn med mindst ét stort bogstav, ét lille bogstav og ét tal. Specialtegn er tilladt.</p>
 <?php
 }

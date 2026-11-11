@@ -48,7 +48,7 @@ page_header('Min konto');
   <fieldset>
     <legend>Skift adgangskode</legend>
     <input type="email" name="email" value="<?= h($u['email']) ?>" autocomplete="username" hidden>
-    <label>Nuværende adgangskode<input type="password" name="current" required autocomplete="current-password" maxlength="256"></label>
+    <label>Nuværende adgangskode *<input type="password" name="current" required autocomplete="current-password" maxlength="256"></label>
     <?php password_fields(); ?>
     <div class="actions">
       <button class="btn primary" type="submit">Skift adgangskode</button>
