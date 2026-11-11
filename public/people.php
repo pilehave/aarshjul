@@ -39,7 +39,7 @@ page_header('Personer');
     <?php endif; ?>
     <?php foreach ($people as $id => $p): ?>
       <div class="row category-row">
-        <label class="grow">Navn<input name="name[<?= $id ?>]" required maxlength="150" value="<?= h($in['name'][$id] ?? $p['name']) ?>"></label>
+        <label class="grow">Navn *<input name="name[<?= $id ?>]" required maxlength="150" value="<?= h($in['name'][$id] ?? $p['name']) ?>"></label>
         <span class="usage muted"><?= (int)$p['used'] ?> begivenhed<?= (int)$p['used'] === 1 ? '' : 'er' ?></span>
         <label class="inline delete"><input type="checkbox" name="delete[]" value="<?= $id ?>" <?= in_array($id, $deleted, true) ? 'checked' : '' ?>> slet</label>
       </div>

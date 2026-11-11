@@ -41,7 +41,7 @@ page_header('Kategorier');
     <?php endif; ?>
     <?php foreach ($categories as $id => $c): ?>
       <div class="row category-row">
-        <label class="grow">Navn<input name="name[<?= $id ?>]" required maxlength="100" value="<?= h($in['name'][$id] ?? $c['name']) ?>"></label>
+        <label class="grow">Navn *<input name="name[<?= $id ?>]" required maxlength="100" value="<?= h($in['name'][$id] ?? $c['name']) ?>"></label>
         <label>Farve<input type="color" name="color[<?= $id ?>]" value="<?= h($in['color'][$id] ?? $c['color']) ?>"></label>
         <?php $hasRing = $in ? !empty($in['has_ring_color'][$id]) : $c['ring_color'] !== null; ?>
         <div class="ring-color" title="Baggrund for kategoriens ring, når hjulet har én ring pr. kategori">
