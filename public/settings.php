@@ -32,7 +32,7 @@ page_header('Indstillinger');
 <h1>Indstillinger</h1>
 
 <?php if ($errors): ?>
-  <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
+  <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 
 <form method="post" class="event-form" enctype="multipart/form-data">
@@ -79,6 +79,10 @@ page_header('Indstillinger');
       <label class="grow">Tekst<input type="text" name="topbar_text" value="<?= h($topbarText) ?>" maxlength="<?= Settings::TOPBAR_TEXT_MAX ?>"
         placeholder="<?= h(Settings::DEFAULTS['topbar_text']) ?>"></label>
     </div>
+    <?php $topbarContrast = Wheel::contrast($topbarBg, $topbarFg); if ($topbarContrast < 4.5): ?>
+      <div class="flash flash-error">Tekstfarven har kun en kontrast på <?= h(number_format($topbarContrast, 1, ',', '')) ?>:1 mod baggrunden.
+        Vælg farver med mindst 4,5:1, så teksten i topbaren er let at læse for alle.</div>
+    <?php endif; ?>
     <p class="muted">Standard er rød baggrund (<?= Settings::DEFAULTS['topbar_bg'] ?>) med hvid tekst og teksten "<?= h(Settings::DEFAULTS['topbar_text']) ?>".
       Teksten vises i topbaren og fanebladet, men ikke i midten af hjulet. Den må være tom, hvis der er et logo.</p>
     <div class="row">

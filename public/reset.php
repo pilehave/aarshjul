@@ -28,11 +28,11 @@ page_header('Vælg adgangskode');
   <h1><?= !$u ? 'Linket virker ikke' : ($u['purpose'] === 'invite' ? 'Velkommen til Årshjul' : 'Vælg ny adgangskode') ?></h1>
 
   <?php if (!$u): ?>
-    <div class="flash flash-error">Linket er udløbet eller allerede brugt.</div>
+    <div class="flash flash-error" role="alert">Linket er udløbet eller allerede brugt.</div>
     <p><a href="forgot.php">Bed om et nyt link</a></p>
   <?php else: ?>
     <?php if ($errors): ?>
-      <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
+      <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
     <?php endif; ?>
     <fieldset>
       <p class="muted">Bruger: <?= h($u['name']) ?> (<?= h($u['email']) ?>)</p>

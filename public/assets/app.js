@@ -61,12 +61,17 @@
     };
     var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
     var updatePlaceholder = function () { input.placeholder = picker.querySelector('.token') ? '' : 'fx Anne Holm'; };
-    var hide = function () { list.hidden = true; active = -1; };
+    var hide = function () {
+      list.hidden = true; active = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    };
     var highlight = function (n) {
       var items = list.querySelectorAll('li[data-id]');
       if (!items.length) return;
       active = (n + items.length) % items.length;
-      items.forEach(function (li, i) { li.classList.toggle('active', i === active); });
+      items.forEach(function (li, i) { li.classList.toggle('active', i === active); li.setAttribute('aria-selected', i === active ? 'true' : 'false'); });
+      input.setAttribute('aria-activedescendant', items[active].id); // skærmlæseren læser det markerede forslag op
       items[active].scrollIntoView({ block: 'nearest' });
     };
     var suggest = function () {
@@ -75,9 +80,11 @@
       var hits = all.filter(function (p) { return taken.indexOf(p.id) === -1 && p.name.toLowerCase().indexOf(q) !== -1; });
       if (!q && !hits.length) { hide(); return; }
       list.innerHTML = hits.length
-        ? hits.map(function (p) { return '<li role="option" data-id="' + p.id + '">' + esc(p.name) + '</li>'; }).join('')
-        : '<li class="none">Ingen personer matcher. Opret dem under "Personer".</li>';
+        ? hits.map(function (p) { return '<li role="option" id="people-opt-' + p.id + '" aria-selected="false" data-id="' + p.id + '">' + esc(p.name) + '</li>'; }).join('')
+        : '<li class="none" role="option" aria-disabled="true">Ingen personer matcher. Opret dem under "Personer".</li>';
       list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      input.removeAttribute('aria-activedescendant');
       active = -1;
       if (hits.length && q) highlight(0);
     };
@@ -160,6 +167,7 @@
     if (!btn) return;
     var open = btn.previousElementSibling.classList.toggle('is-open');
     btn.textContent = open ? 'Vis mindre' : 'Vis mere';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   });
   window.addEventListener('resize', updateDescToggles);
   updateDescToggles();
@@ -190,6 +198,20 @@
     var details = JSON.parse(occData.textContent);
     var canEdit = modal.getAttribute('data-can-edit') === '1'; // læsere ser flueben og noter, men kan ikke ændre dem
     var field = function (name) { return modal.querySelector('[data-f="' + name + '"]'); };
+    // Et symbol (✓, ⏳, →), som skærmlæsere springer over, evt. erstattet af en skjult tekst, fulgt af teksten
+    var withSymbol = function (el, symbol, srText, text) {
+      var s = document.createElement('span');
+      s.setAttribute('aria-hidden', 'true');
+      s.textContent = symbol;
+      el.appendChild(s);
+      if (srText) {
+        var sr = document.createElement('span');
+        sr.className = 'sr-only';
+        sr.textContent = srText;
+        el.appendChild(sr);
+      }
+      el.appendChild(document.createTextNode(' ' + text));
+    };
     var showRow = function (name, on) { modal.querySelectorAll('[data-row="' + name + '"]').forEach(function (el) { el.hidden = !on; }); };
     var openOcc = function (d) {
       field('title').textContent = d.title;
@@ -277,7 +299,7 @@
       d.prereqs.forEach(function (p) {
         var div = document.createElement('div');
         div.className = 'prereq ' + (p.done ? 'ok' : 'wait');
-        div.textContent = (p.done ? '✓ ' : '⏳ ') + p.title + ' (' + (p.date || 'ingen forekomst') + ')';
+        withSymbol(div, p.done ? '✓' : '⏳', p.done ? 'Opfyldt:' : 'Venter:', p.title + ' (' + (p.date || 'ingen forekomst') + ')');
         prereqs.appendChild(div);
       });
       showRow('prereqs', d.prereqs.length > 0);
@@ -287,7 +309,7 @@
       d.dependents.forEach(function (p) {
         var div = document.createElement('div');
         div.className = 'prereq';
-        div.textContent = '→ ' + p.title + ' (' + (p.date || 'ingen forekomst') + ')';
+        withSymbol(div, '→', '', p.title + ' (' + (p.date || 'ingen forekomst') + ')');
         dependents.appendChild(div);
       });
       showRow('dependents', d.dependents.length > 0);
@@ -320,6 +342,23 @@
       if (ev.target.closest('[data-close]') || ev.target === modal) modal.close();
     });
   }
+
+  // --- Forside: filtrene (data-autosubmit) sendes, når de ændres ---
+  // Med musen sendes en liste med det samme. Med tastaturet skifter piletasterne værdien i en lukket liste (Chrome/Edge på
+  // Windows), og hvert tryk ville genindlæse siden (WCAG 3.2.2). Så sendes den først ved Enter, eller når feltet forlades.
+  // Et afkrydsningsfelt sendes altid med det samme, da mellemrum er et bevidst valg
+  document.querySelectorAll('[data-autosubmit]').forEach(function (el) {
+    if (el.type === 'checkbox') { el.addEventListener('change', function () { el.form.submit(); }); return; }
+    var initial = el.value, keyed = false;
+    var send = function () { if (el.value !== initial) el.form.submit(); };
+    el.addEventListener('mousedown', function () { keyed = false; });
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); send(); }
+      else if (ev.key !== 'Tab' && ev.key !== 'Shift') keyed = true;
+    });
+    el.addEventListener('change', function () { if (!keyed) send(); });
+    el.addEventListener('blur', function () { if (keyed) send(); });
+  });
 
   // --- Forside: kalenderabonnement. data-open-dialog åbner dialogen; #kalender åbner den efter oprettelse af adressen ---
   document.querySelectorAll('[data-open-dialog]').forEach(function (btn) {

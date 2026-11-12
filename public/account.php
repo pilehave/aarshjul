@@ -31,7 +31,7 @@ page_header('Min konto');
 <h1>Min konto</h1>
 
 <?php if ($errors): ?>
-  <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
+  <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 
 <form method="post" class="event-form">

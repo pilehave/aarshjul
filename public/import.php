@@ -46,7 +46,7 @@ page_header('Skabelon');
   så der er ikke brug for at kopiere et år til det næste.</p>
 
 <?php if ($errors): ?>
-  <div class="flash flash-error"><p>Skabelonen blev ikke importeret, og intet er ændret:</p>
+  <div class="flash flash-error" role="alert"><p>Skabelonen blev ikke importeret, og intet er ændret:</p>
     <ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 

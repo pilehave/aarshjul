@@ -34,7 +34,7 @@ page_header('Log ind');
   <h1>Log ind</h1>
 
   <?php if ($errors): ?>
-    <div class="flash flash-error"><?= h(implode(' ', $errors)) ?></div>
+    <div class="flash flash-error" role="alert"><?= h(implode(' ', $errors)) ?></div>
   <?php endif; ?>
 
   <fieldset>

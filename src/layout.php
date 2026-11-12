@@ -47,7 +47,7 @@ function page_header(string $title): void
 </header>
 <main>
 <?php if ($flash): ?>
-  <div class="flash flash-<?= h($flash['type']) ?>"><?= h($flash['msg']) ?></div>
+  <div class="flash flash-<?= h($flash['type']) ?>" role="<?= $flash['type'] === 'error' ? 'alert' : 'status' ?>"><?= h($flash['msg']) ?></div>
 <?php endif;
 }
 
@@ -57,7 +57,7 @@ function password_fields(): void
     ?>
     <label>Ny adgangskode *<input type="password" name="password" required minlength="12" maxlength="256" autocomplete="new-password"></label>
     <label>Gentag ny adgangskode *<input type="password" name="password2" required minlength="12" maxlength="256" autocomplete="new-password"></label>
-    <p class="muted">Mindst 12 tegn med mindst ét stort bogstav, ét lille bogstav og ét tal. Specialtegn er tilladt.</p>
+    <p class="muted">Mindst 12 tegn med mindst ét stort bogstav, ét lille bogstav og ét tal. Specialtegn er tilladt. Felter med * skal udfyldes.</p>
 <?php
 }
 
@@ -67,7 +67,7 @@ function ical_address(string $url): void
     ?>
     <div class="ical-url">
       <input type="text" value="<?= h($url) ?>" readonly aria-label="Kalenderadresse" onfocus="this.select()">
-      <button class="btn" type="button" data-copy>Kopiér</button>
+      <button class="btn" type="button" data-copy aria-live="polite">Kopiér</button>
     </div>
     <p class="muted"><strong>Del ikke adressen.</strong> Alle med adressen kan se begivenhederne, uden at logge ind.</p>
     <details class="ical-help">

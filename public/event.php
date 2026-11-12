@@ -63,12 +63,13 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
 ?>
 <p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
 <h1><?= $id ? 'Rediger: ' . h($e['title']) : ($copyId ? 'Kopi af ' . h($all[$copyId]['title']) : 'Ny begivenhed') ?></h1>
+<p class="muted">Felter med * skal udfyldes.</p>
 <?php if ($copyId): ?>
   <p class="muted">Formularen er udfyldt ud fra "<?= h($all[$copyId]['title']) ?>". Originalen ændres ikke, og flueben og noter kopieres ikke.</p>
 <?php endif; ?>
 
 <?php if ($errors): ?>
-  <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
+  <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 
 <form method="post" enctype="multipart/form-data" class="event-form">
@@ -102,8 +103,9 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
         <?php foreach ($e['people'] as $p): ?>
           <span class="token"><?= h($p['name']) ?><button type="button" class="token-x" title="Fjern <?= h($p['name']) ?>" aria-label="Fjern <?= h($p['name']) ?>">×</button><input type="hidden" name="people[]" value="<?= (int)$p['id'] ?>"></span>
         <?php endforeach; ?>
-        <input type="text" class="token-input" id="people-input" autocomplete="off" placeholder="<?= $e['people'] ? '' : 'fx Anne Holm' ?>">
-        <ul class="token-suggest" role="listbox" hidden></ul>
+        <input type="text" class="token-input" id="people-input" autocomplete="off" placeholder="<?= $e['people'] ? '' : 'fx Anne Holm' ?>"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="people-suggest">
+        <ul class="token-suggest" id="people-suggest" role="listbox" aria-label="Personer" hidden></ul>
       </div>
       <?php if (!$people): ?>
         <p class="muted">Der er ingen personer endnu. <a href="people.php?year=<?= $year ?>">Opret personer</a> først.</p>
@@ -193,7 +195,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
         <div class="row link-row">
           <label class="grow">URL<input type="url" name="link_url[]" value="<?= h($l['url']) ?>" placeholder="https://"></label>
           <label class="grow">Tekst<input name="link_label[]" value="<?= h($l['label'] ?? '') ?>"></label>
-          <button type="button" class="btn small" data-remove-row>✕</button>
+          <button type="button" class="btn small" data-remove-row aria-label="Fjern link">✕</button>
         </div>
       <?php endforeach; ?>
     </div>
