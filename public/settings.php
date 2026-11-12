@@ -30,6 +30,8 @@ page_header('Indstillinger');
 ?>
 <p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
 <h1>Indstillinger</h1>
+<p class="muted">Indstillingerne gælder for hele årshjulet og dermed for alle brugere. Ændrer du fx startmåneden, ringene eller topbaren,
+  ser alle andre også ændringen, næste gang de åbner en side.</p>
 
 <?php if ($errors): ?>
   <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
