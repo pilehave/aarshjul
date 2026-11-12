@@ -13,10 +13,14 @@ final class Wheel
     private const R_MONTH_IN = 440;
     private const R_WEEK_IN = 418;
     private const PAD = 32; // margen uden om hjulet til skyggen (viewBox går fra -PAD til SIZE + PAD)
-    private const TODAY = '#d64545'; // farven for "i dag" og den aktuelle uge
+    private const TODAY = '#b83232'; // farven for "i dag" og den aktuelle uge (kontrast mindst 4,5:1 mod månedsringen)
     private const R_LANES_OUT = 410;
     private const R_LANES_IN = 120;
-    private const OVERDUE = '#d64545'; // samme røde som "i dag"-markøren
+    private const OVERDUE = '#b83232'; // samme røde som "i dag"-markøren
+    /** Mørk tekst på lyse begivenhedsfarver (se textColor) */
+    private const TEXT_DARK = '#111a2e';
+    /** Opfyldte forekomster tegnes i deres farve blandet med så meget hvid (i stedet for gennemsigtighed, så teksten bevarer sin kontrast) */
+    private const DONE_FADE = 0.55;
 
     /** Korte forekomster tegnes mindst så mange dage brede, så de kan ses og klikkes på */
     private const MIN_SPAN = 3;
@@ -167,7 +171,9 @@ final class Wheel
 
         $o = [];
         $full = self::SIZE + 2 * self::PAD;
-        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="%4$s" role="img" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label), h(self::FONT_FAMILY));
+        $o[] = sprintf('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%1$d %1$d %2$d %2$d" width="%2$d" height="%2$d" font-family="%4$s" role="%5$s" aria-label="Årshjul %3$s">', -self::PAD, $full, h($label), h(self::FONT_FAMILY),
+            // Med links skal begivenhederne kunne nås af skærmlæsere; role="img" ville skjule dem
+            $links ? 'group' : 'img');
         $o[] = '<defs><pattern id="blocked" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)"><rect width="8" height="8" fill="white" fill-opacity="0"/><line x1="0" y1="0" x2="0" y2="8" stroke="#ffffff" stroke-width="3" stroke-opacity="0.75"/></pattern>'
             // Grå skygge under hjulets yderkant, så hjulet ser ud til at svæve over baggrunden
             . '<filter id="wheel-shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/></filter>'
@@ -328,9 +334,9 @@ final class Wheel
                 . ($ev['people'] ? ' · ' . implode(', ', array_column($ev['people'], 'name')) : '')
                 . ($occ['done'] ? ' · ✓ Opfyldt' : '') . ($occ['overdue'] ? ' · Overskredet' : '') . ($occ['blocked'] ? ' · Venter på forudsætning' : '')
                 . ($occ['note'] !== null ? ' · Note: ' . mb_strimwidth(preg_replace('/\s+/u', ' ', $occ['note']), 0, 80, '…') : '');
-            $opacity = $occ['done'] ? '0.45' : '1';
-            $g = sprintf('<g opacity="%s"><title>%s</title>', $opacity, h($tip));
-            $g .= sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="1"/>', self::arc($a1, $a2, $rIn, $rOut), h($ev['color']));
+            $fill = $occ['done'] ? self::mix($ev['color'], '#ffffff', self::DONE_FADE) : $ev['color'];
+            $g = sprintf('<g><title>%s</title>', h($tip));
+            $g .= sprintf('<path d="%s" fill="%s" stroke="#ffffff" stroke-width="1"/>', self::arc($a1, $a2, $rIn, $rOut), h($fill));
             if ($occ['blocked']) {
                 $g .= sprintf('<path d="%s" fill="url(#blocked)"/>', self::arc($a1, $a2, $rIn, $rOut));
             }
@@ -349,14 +355,14 @@ final class Wheel
                 $labelEnd = max($a1, $a2 - 2 * $da);
             }
             $fontSize = min(13, max(8, $laneW * 0.4));
-            $g .= self::label($a1, $labelEnd, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, '#ffffff', 'normal', 'e' . $i);
+            $g .= self::label($a1, $labelEnd, ($rIn + $rOut) / 2, ($occ['done'] ? '✓ ' : '') . $ev['title'], $fontSize, self::textColor($fill), 'normal', 'e' . $i);
             $g .= $mark;
             $g .= '</g>';
             if ($links) {
                 // data-occ er forekomstens nøgle i $occurrences; forsiden åbner en modal med detaljerne ud fra den
                 // Uden JavaScript (eller ved ctrl-klik) går linket til redigering, eller til modalen for ikke-administratorer
                 $href = Auth::can('admin') ? sprintf('event.php?id=%d&amp;year=%d', $ev['id'], $year) : sprintf('#forekomst=%d_%s', $ev['id'], $occ['date']);
-                $g = sprintf('<a href="%s" data-occ="%s">%s</a>', $href, h((string)$k), $g);
+                $g = sprintf('<a href="%s" data-occ="%s" aria-label="%s">%s</a>', $href, h((string)$k), h($tip), $g);
             }
             $o[] = $g;
         }
@@ -421,6 +427,45 @@ final class Wheel
     {
         $deg = fmod(fmod($deg, 360) + 360, 360);
         return $deg > 90 && $deg < 270 ? $deg - 180 : ($deg >= 270 ? $deg - 360 : $deg);
+    }
+
+    /** Relativ luminans (WCAG) for en farve som #rrggbb */
+    public static function luminance(string $hex): float
+    {
+        if (!preg_match('/^#?([0-9a-f]{6})$/i', $hex, $m)) {
+            return 0.0;
+        }
+        $c = array_map(function (string $x) {
+            $v = hexdec($x) / 255;
+            return $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+        }, str_split($m[1], 2));
+        return 0.2126 * $c[0] + 0.7152 * $c[1] + 0.0722 * $c[2];
+    }
+
+    /** Kontrastforholdet (WCAG) mellem to farver, fra 1 til 21 */
+    public static function contrast(string $a, string $b): float
+    {
+        [$l1, $l2] = [self::luminance($a), self::luminance($b)];
+        return (max($l1, $l2) + 0.05) / (min($l1, $l2) + 0.05);
+    }
+
+    /** Hvid eller mørk tekst, alt efter hvad der giver størst kontrast mod baggrunden $bg */
+    public static function textColor(string $bg): string
+    {
+        return self::contrast('#ffffff', $bg) >= self::contrast(self::TEXT_DARK, $bg) ? '#ffffff' : self::TEXT_DARK;
+    }
+
+    /** $color blandet med $with; $amount er andelen af $with (0–1). Ugyldige farver gives uændret tilbage */
+    public static function mix(string $color, string $with, float $amount): string
+    {
+        if (!preg_match('/^#[0-9a-f]{6}$/i', $color) || !preg_match('/^#[0-9a-f]{6}$/i', $with)) {
+            return $color;
+        }
+        $out = '#';
+        for ($i = 1; $i < 7; $i += 2) {
+            $out .= sprintf('%02x', (int)round(hexdec(substr($color, $i, 2)) * (1 - $amount) + hexdec(substr($with, $i, 2)) * $amount));
+        }
+        return $out;
     }
 
     private static function label(float $a1, float $a2, float $r, string $text, float $size, string $fill, string $weight, string $id): string

@@ -25,9 +25,10 @@ page_header('Personer');
 ?>
 <p><a href="index.php?year=<?= $year ?>">‹ Tilbage til årshjulet <?= h(year_label($year)) ?></a></p>
 <h1>Personer</h1>
+<p class="muted">Felter med * skal udfyldes.</p>
 
 <?php if ($errors): ?>
-  <div class="flash flash-error"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
+  <div class="flash flash-error" role="alert"><ul><?php foreach ($errors as $err): ?><li><?= h($err) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
 
 <form method="post" class="event-form" onsubmit="return !this.querySelector('[name=&quot;delete[]&quot;]:checked') || confirm('Slet de markerede personer? De fjernes også fra deres begivenheder.')">

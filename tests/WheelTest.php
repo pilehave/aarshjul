@@ -120,7 +120,7 @@ test('Alle ugenumre i hjulet er roteret om deres eget midtpunkt', function () {
 
 test('Den aktuelle uge er fed og rød, og stregen for i dag stopper ved ugeringen', function () {
     $svg = Wheel::svg((int)date('Y'), [], false); // hjulet starter i januar og indeholder altså i dag
-    preg_match_all('~<text [^>]*font-size="11" fill="#d64545" font-weight="bold"[^>]*>(\d+)</text>~', $svg, $m);
+    preg_match_all('~<text [^>]*font-size="11" fill="#b83232" font-weight="bold"[^>]*>(\d+)</text>~', $svg, $m);
     assert_same([(int)date('W')], array_map('intval', $m[1]), 'Kun den aktuelle uge er fremhævet');
     assert_true((bool)preg_match('~<line class="today" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"~', $svg, $l));
     $r = hypot((float)$l[3] - 500, (float)$l[4] - 500);
@@ -130,7 +130,7 @@ test('Den aktuelle uge er fed og rød, og stregen for i dag stopper ved ugeringe
 
 test('Ingen markering af i dag i et hjul, der ikke indeholder i dag', function () {
     $svg = Wheel::svg((int)date('Y') + 2, [], false);
-    assert_true(!str_contains($svg, 'class="today"') && !str_contains($svg, '#d64545'));
+    assert_true(!str_contains($svg, 'class="today"') && !str_contains($svg, '#b83232'));
 });
 
 // --- Skygge ---
@@ -157,4 +157,31 @@ test('Skyggen ved sammenstødet ligger til højre for toppen, går fra midtercir
     $w = (float)$p[2] - 500;
     assert_true(abs(hypot($w, 500 - (float)$p[3]) - 490) < 0.1, 'Ydre hjørne ligger på yderkanten');
     assert_true(abs(hypot($w, 500 - (float)$p[4]) - 120) < 0.1, 'Indre hjørne ligger på midtercirklen');
+});
+
+// --- Wheel: kontrast og tekstfarve ---
+
+test('Kontrasten mellem sort og hvid er 21:1, og ens farver giver 1:1', function () {
+    assert_same(21.0, round(Wheel::contrast('#000000', '#ffffff'), 2));
+    assert_same(1.0, Wheel::contrast('#2f6fde', '#2f6fde'));
+});
+
+test('Teksten på en begivenhed er hvid på mørke farver og mørk på lyse', function () {
+    assert_same('#ffffff', Wheel::textColor('#2f6fde'));
+    assert_same('#111a2e', Wheel::textColor('#d9822b'));
+    assert_same('#111a2e', Wheel::textColor('#ffcc00'));
+});
+
+test('Teksten på en begivenhed har mindst 4,5:1 i kontrast for eksempeldataens farver, også når den er opfyldt', function () {
+    foreach (['#2f6fde', '#d9822b', '#3a9d5d', '#8e5bd6', '#e05a8a'] as $c) {
+        foreach ([$c, Wheel::mix($c, '#ffffff', 0.55)] as $bg) {
+            assert_true(Wheel::contrast(Wheel::textColor($bg), $bg) >= 4.5, "$bg har for lav kontrast");
+        }
+    }
+});
+
+test('mix blander farver og lader ugyldige farver være', function () {
+    assert_same('#808080', Wheel::mix('#000000', '#ffffff', 0.5));
+    assert_same('#ffffff', Wheel::mix('#000000', '#ffffff', 1.0));
+    assert_same('red', Wheel::mix('red', '#ffffff', 0.5));
 });

@@ -79,7 +79,7 @@ page_header("Årshjul $label");
  <div class="toolbar-row">
   <div class="yearnav">
     <a class="btn icon" href="<?= h($to($prev)) ?>" title="<?= h(Period::label($prev)) ?>" aria-label="Forrige: <?= h(Period::label($prev)) ?>">‹</a>
-    <strong><?= h($label) ?></strong>
+    <h1><?= h($label) ?></h1>
     <a class="btn icon" href="<?= h($to($next)) ?>" title="<?= h(Period::label($next)) ?>" aria-label="Næste: <?= h(Period::label($next)) ?>">›</a>
   </div>
   <nav class="zoom" aria-label="Zoom">
@@ -121,7 +121,7 @@ page_header("Årshjul $label");
     <?php if ($period['zoom']): ?><input type="hidden" name="zoom" value="<?= h($period['zoom']) ?>"><?php endif; ?>
     <input type="hidden" name="q" id="filter-q" value="<?= h($search) ?>" <?= $search === '' ? 'disabled' : '' ?>>
     <label><span class="field-label">Person</span>
-      <select name="person" onchange="this.form.submit()">
+      <select name="person" data-autosubmit>
         <option value="">Alle</option>
         <?php foreach ($people as $p): ?>
           <option value="<?= (int)$p['id'] ?>" <?= $personId === (int)$p['id'] ? 'selected' : '' ?>><?= h($p['name']) ?></option>
@@ -133,7 +133,7 @@ page_header("Årshjul $label");
         title="Vis kun begivenheder, du er tilknyttet">Mine begivenheder</a>
     <?php endif; ?>
     <label><span class="field-label">Kategori</span>
-      <select name="category" onchange="this.form.submit()">
+      <select name="category" data-autosubmit>
         <option value="">Alle</option>
         <?php foreach ($categories as $id => $c): ?>
           <option value="<?= (int)$id ?>" <?= $categoryId === (int)$id ? 'selected' : '' ?>><?= h($c['name']) ?></option>
@@ -141,8 +141,9 @@ page_header("Årshjul $label");
       </select>
     </label>
     <label title="Vis kun forekomster uden flueben, herunder de overskredne">
-      <input type="checkbox" name="missing" value="1" <?= $onlyMissing ? 'checked' : '' ?> onchange="this.form.submit()"> Kun ikke-opfyldte
+      <input type="checkbox" name="missing" value="1" <?= $onlyMissing ? 'checked' : '' ?> data-autosubmit> Kun ikke-opfyldte
     </label>
+    <noscript><button class="btn" type="submit">Vis</button></noscript>
   </form>
   <button class="btn" type="button" id="toggle-list" aria-controls="event-list" aria-expanded="true">Skjul begivenheder</button>
  </div>
@@ -188,7 +189,7 @@ page_header("Årshjul $label");
           <input type="hidden" name="id" value="<?= (int)$ev['id'] ?>">
           <input type="hidden" name="date" value="<?= h($o['date']) ?>">
           <input type="hidden" name="back" value="<?= h($_SERVER['REQUEST_URI']) ?>">
-          <input type="checkbox" name="done" value="1" title="<?= !$canEdit ? ($o['done'] ? 'Opfyldt' : 'Ikke opfyldt') : ($o['blocked'] && !$o['done'] ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt') ?>"
+          <input type="checkbox" name="done" value="1" aria-label="<?= h('Opfyldt: ' . $ev['title'] . ', ' . period_da($o['date'], $o['end'])) ?>" title="<?= !$canEdit ? ($o['done'] ? 'Opfyldt' : 'Ikke opfyldt') : ($o['blocked'] && !$o['done'] ? 'Kan først krydses af, når forudsætningerne er opfyldt' : 'Marker som opfyldt') ?>"
             <?= $o['done'] ? 'checked' : '' ?> <?= !$canEdit || ($o['blocked'] && !$o['done']) ? 'disabled' : '' ?> onchange="this.form.submit()">
         </form>
         <div class="occ-body">
@@ -204,11 +205,11 @@ page_header("Årshjul $label");
             · <?= h(Recurrence::describe($ev)) ?>
           </div>
           <?php if ($o['completed']): ?>
-            <div class="occ-by">✓ <?= h(Events::completedText($o['completed'])) ?></div>
+            <div class="occ-by"><span aria-hidden="true">✓</span> <?= h(Events::completedText($o['completed'])) ?></div>
           <?php endif; ?>
           <?php if (trim((string)$ev['description']) !== ''): ?>
             <div class="occ-desc"><?= h(trim($ev['description'])) ?></div>
-            <button type="button" class="occ-more" hidden>Vis mere</button>
+            <button type="button" class="occ-more" aria-expanded="false" hidden>Vis mere</button>
           <?php endif; ?>
           <?php if ($o['note'] !== null): ?>
             <div class="occ-note"><?= h($o['note']) ?></div>
@@ -216,8 +217,8 @@ page_header("Årshjul $label");
           <?php endif; ?>
           <?php if ($o['links'] || $o['files']): ?>
             <div class="occ-attach">
-              <?php foreach ($o['links'] as $l): ?><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener"<?= $l['by_name'] !== null ? ' title="Tilføjet af ' . h($l['by_name']) . '"' : '' ?>>🔗 <?= h($l['label'] ?: $l['url']) ?></a><?php endforeach; ?>
-              <?php foreach ($o['files'] as $f): ?><a href="download.php?id=<?= (int)$f['id'] ?>&amp;occ=1" title="<?= h(Events::uploadedText($f)) ?>">📎 <?= h($f['original_name']) ?></a><?php endforeach; ?>
+              <?php foreach ($o['links'] as $l): ?><a href="<?= h($l['url']) ?>" target="_blank" rel="noopener"<?= $l['by_name'] !== null ? ' title="Tilføjet af ' . h($l['by_name']) . '"' : '' ?>><span aria-hidden="true">🔗</span> <?= h($l['label'] ?: $l['url']) ?></a><?php endforeach; ?>
+              <?php foreach ($o['files'] as $f): ?><a href="download.php?id=<?= (int)$f['id'] ?>&amp;occ=1" title="<?= h(Events::uploadedText($f)) ?>"><span aria-hidden="true">📎</span> <?= h($f['original_name']) ?></a><?php endforeach; ?>
             </div>
           <?php endif; ?>
           <?php if ($ev['people']): ?>
@@ -225,13 +226,13 @@ page_header("Årshjul $label");
           <?php endif; ?>
           <?php foreach ($o['prereqs'] as $p): ?>
             <div class="prereq <?= $p['done'] ? 'ok' : 'wait' ?>">
-              <?= $p['done'] ? '✓' : '⏳' ?> Afhænger af <?= event_link($p['event'], $year, $isAdmin) ?>
+              <span aria-hidden="true"><?= $p['done'] ? '✓' : '⏳' ?></span><span class="sr-only"><?= $p['done'] ? 'Opfyldt:' : 'Venter:' ?></span> Afhænger af <?= event_link($p['event'], $year, $isAdmin) ?>
               <?= $p['date'] ? '(' . h(date_da($p['date'], true)) . ')' : '(ingen forekomst)' ?>
             </div>
           <?php endforeach; ?>
           <?php foreach ($o['dependents'] as $d): ?>
             <div class="prereq">
-              → Forudsætning for <?= event_link($d['event'], $year, $isAdmin) ?>
+              <span aria-hidden="true">→</span> Forudsætning for <?= event_link($d['event'], $year, $isAdmin) ?>
               <?= $d['date'] ? '(' . h(date_da($d['date'], true)) . ')' : '(ingen forekomst)' ?>
             </div>
           <?php endforeach; ?>
@@ -255,7 +256,7 @@ page_header("Årshjul $label");
     <input type="hidden" name="date">
     <input type="hidden" name="back">
     <label><input type="checkbox" name="done" value="1" <?= $canEdit ? '' : 'disabled' ?>> Opfyldt</label>
-    <span class="modal-status wait" data-f="status" hidden>⏳ Venter på forudsætning</span>
+    <span class="modal-status wait" data-f="status" hidden><span aria-hidden="true">⏳</span> Venter på forudsætning</span>
     <span class="modal-status overdue" data-f="overdue" hidden>Overskredet</span>
     <span class="occ-by" data-f="completed" hidden></span>
   </form>
@@ -283,7 +284,7 @@ page_header("Årshjul $label");
       <div class="row link-row">
         <label class="grow">URL<input type="url" name="link_url[]" placeholder="https://"></label>
         <label class="grow">Tekst<input name="link_label[]"></label>
-        <button type="button" class="btn small" data-remove-row>✕</button>
+        <button type="button" class="btn small" data-remove-row aria-label="Fjern link">✕</button>
       </div>
     </div>
     <?php if ($canEdit): ?>
