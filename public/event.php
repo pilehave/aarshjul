@@ -98,7 +98,7 @@ page_header($id ? $e['title'] : ($copyId ? 'Kopi af ' . $all[$copyId]['title'] :
     <?php endif; ?>
     <label>Beskrivelse<textarea name="description" rows="4" placeholder="fx &quot;Dagsorden fremsendes på mail&quot;"><?= h($e['description']) ?></textarea></label>
     <div class="field">
-      <label for="people-input" class="field-label">Personer (begynd at skrive et navn)</label>
+      <label for="people-input">Personer (begynd at skrive et navn)</label>
       <div class="tokens" id="people-picker" data-people="<?= h(json_encode(array_values(array_map(fn($p) => ['id' => (int)$p['id'], 'name' => $p['name']], $people)))) ?>">
         <?php foreach ($e['people'] as $p): ?>
           <span class="token"><?= h($p['name']) ?><button type="button" class="token-x" title="Fjern <?= h($p['name']) ?>" aria-label="Fjern <?= h($p['name']) ?>">×</button><input type="hidden" name="people[]" value="<?= (int)$p['id'] ?>"></span>
