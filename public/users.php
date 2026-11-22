@@ -94,7 +94,7 @@ page_header('Brugere');
     <legend>Ny bruger</legend>
     <div class="row">
       <label class="grow">Navn<input name="new_name" maxlength="150" value="<?= h($in['new_name'] ?? '') ?>" placeholder="fx Anne Holm"></label>
-      <label class="grow">Mail<input type="email" name="new_email" maxlength="254" value="<?= h($in['new_email'] ?? '') ?>"></label>
+      <label class="grow">E-mail<input type="email" name="new_email" maxlength="254" value="<?= h($in['new_email'] ?? '') ?>"></label>
       <label>Rolle<?= $roleSelect('new_role', $in['new_role'] ?? 'reader') ?></label>
       <label>Person<?= $personSelect('new_person', (int)($in['new_person'] ?? 0) ?: null) ?></label>
     </div>
