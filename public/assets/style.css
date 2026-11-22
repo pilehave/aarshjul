@@ -204,8 +204,8 @@ input[type=color] { display: block; margin-top: 3px; width: 56px; height: 36px; 
 .category-pick select { margin-top: 0; }
 .swatch { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--field-border); background: #fff; }
 .category-row .usage { font-size: 13px; padding-bottom: 16px; min-width: 100px; }
-.category-row .delete { padding-bottom: 14px; }
-.ring-color { display: flex; align-items: center; gap: 4px; padding-bottom: 6px; }
+.category-row .delete { display: flex; align-items: center; gap: 4px; height: 36px; margin: 0 0 8px; } /* samme højde og placering som farvefelterne */
+.ring-color { display: flex; align-items: center; gap: 4px; padding-bottom: 8px; } /* som label-margen under Farve */
 .ring-color label.inline { margin: 0 4px 0 0; }
 .ring-color input[type=color] { margin-top: 0; }
 .ring-color:has(input[type=checkbox]:not(:checked)) input[type=color] { opacity: .35; } /* farven bruges kun med flueben */
