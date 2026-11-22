@@ -196,7 +196,9 @@ input[type=color] { display: block; margin-top: 3px; width: 56px; height: 36px; 
 .row > label.grow { flex: 1 1 220px; }
 .row .hint { color: var(--muted); font-size: 14px; padding-bottom: 16px; flex: 1 1 200px; }
 [hidden] { display: none !important; }
-.link-row .btn { margin-bottom: 9px; }
+/* Fjern-knappen får samme højde som inputfelterne (14px tekst × 1.45 + 2 × 7px padding + 2 × 1px kant) */
+.link-row .btn { display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;
+  height: calc(14px * 1.45 + 16px); min-width: calc(14px * 1.45 + 16px); }
 .deps { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 2px 12px; }
 .dep { margin: 3px 0; }
 .category select { width: 220px; }
